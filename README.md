@@ -1,4 +1,4 @@
-# Pet Hotel Web Server API Documentation
+# Pet Stays Web Server API Documentation
 
 ## [Trello Board](https://trello.com/b/NPLfb6PC/kanban-template)
 
@@ -6,7 +6,7 @@
 
 ### Table of Contents
 
-- [Pet Hotel Web Server API Documentation](#pet-hotel-web-server-api-documentation)
+- [Pet Stays Web Server API Documentation](#pet-hotel-web-server-api-documentation)
 - [R1 and R2 Problem Identification and Justification]()
 - [R3 Justification of the Database System]()
   - [Relational Database Management System (RDBMS)]()

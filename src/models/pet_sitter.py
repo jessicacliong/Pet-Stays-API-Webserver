@@ -9,6 +9,7 @@
 #   last_name = db.Column(db.String())
 #   email = db.Column(db.String())
 #   password = db.Column(db.String())
+#   admin = db.Column(db.Boolean(), default=False)
 #   pet = db.relationship(
 #       "Pet",
 #       backref="pet_sitter",

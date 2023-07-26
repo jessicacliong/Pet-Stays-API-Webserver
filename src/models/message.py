@@ -6,7 +6,8 @@ class Messages(db.Model):
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
   date = db.Column(db.Date())
+  title = db.Column(db.String())
   content = db.Column(db.String())
-  # two foreign keys
-  customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
-  pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
+  # # two foreign keys
+  # customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
+  # pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)

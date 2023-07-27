@@ -4,7 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from marshmallow.validate import Length 
 from flask_bcrypt import Bcrypt
 from datetime import date, timedelta
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
+import functools
 
 app = Flask(__name__)
 ma = Marshmallow(app)
@@ -219,7 +220,7 @@ messages_schema = MessageSchema(many=True)
 #   # return the data in JSON format
 #   return jsonify(result)    
 
-@app.route("/auth/register/customer", methods=["POST"])
+@app.route("/auth/customer/register", methods=["POST"])
 def auth_register_customer():
   #The request data will be loaded in a customer_schema converted to JSON
     customer_fields = customer_schema.load(request.json)
@@ -229,7 +230,7 @@ def auth_register_customer():
     if customer:
       # return an abort message to inform the customer. That will end the request
       return abort(400, description="Email already registered")
-    #Create the user object
+    #Create the customer object
     customer = Customer()
     #Add first name attribute
     customer.first_name = customer_fields["first_name"]
@@ -249,7 +250,7 @@ def auth_register_customer():
     #Return the user to check the request was successful
     return jsonify(customer_schema.dump(customer))
 
-@app.route("/auth/login/customer", methods=["POST"])
+@app.route("/auth/customer/login", methods=["POST"])
 def auth_login():
   #get the user data from the request
   customer_fields = customer_schema.load(request.json)
@@ -265,6 +266,67 @@ def auth_login():
   access_token = create_access_token(identity=str(customer.id), expires_delta=expiry)
   # return the user email and the access token
   return jsonify({"customer":customer.email, "token": access_token })
+
+# @app.route("/customer/<int:id>", methods=["GET"])
+# @jwt_required()
+# def get_customer_details(id):
+#   stmt = db.select(Customer).filter_by(id=id)
+#   customer = db.session.scalar(stmt)
+#   if customer:
+#       return customer_schema.dump(customer)
+#   else:
+#       return {'error': f'Customer not found with id {id}'}, 404
+
+# @app.route("/customer/", methods=["POST"])
+# #Decorator to make sure the jwt is included in the request
+# @jwt_required()
+# def customer_details():
+#   #create new customer details
+#   customer_fields = customer_schema.load(request.json)
+#   new_customer = Customer()
+#   new_customer.first_name = customer_fields["first_name"]
+#   new_customer.last_name = customer_fields["last_name"]
+#   new_customer.email = customer_fields["email"]
+#   new_customer.password = customer_fields["password"]
+#   # add to the database and commit
+#   db.session.add(new_customer)
+#   db.session.commit()
+#   #return the card in the response
+#   return jsonify(customer_schema.dump(new_customer))
+
+# def authorise_customer(fn):
+#     @functools.wraps(fn)
+#     def wrapper(*args, **kwargs):
+#         customer_id = get_jwt_identity()
+#         stmt = db.select(Customer).filter_by(id=customer_id)
+#         user = db.session.scalar(stmt)
+#         if customer_id:
+#             return fn(*args, **kwargs)
+#         else:
+#             return {'error': 'Not authorised to perform edit'}, 403
+#     return wrapper
+
+@app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
+@jwt_required()
+# @authorise_customer
+def update_customer(id):
+    body_data = customer_schema.load(request.get_json(), partial=True)
+    customer_id = get_jwt_identity() # the user who sent the request / they are trying to edit
+    stmt = db.select(Customer).filter_by(id=id)
+    customer = db.session.scalar(stmt)
+    if customer:
+        if str(customer.id) != get_jwt_identity():
+            return {'error': 'Only the corresponding customer can edit details'}, 403
+        customer.first_name = body_data.get('first_name') or customer.first_name
+        customer.last_name = body_data.get('last_name') or customer.last_name
+        customer.email = body_data.get('email') or customer.email
+        if body_data.get('password'):
+          user.password = bcrypt.generate_password_hash(body_data.get('password')).decode('utf-8')
+        # (how to crypt the password?)
+        db.session.commit()
+        return customer_schema.dump(customer)
+    else:
+        return {'error': f'Customer not found with id {id}'}, 404
 
 
 

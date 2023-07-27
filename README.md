@@ -28,7 +28,9 @@
 
 ### R1 and R2 Problem Identification and Justification
 
-The problem being solved by this application is the need for a secure method pet owners can create personal accounts with a pet sitter company, pet sitters can inform owners with matters regarding their loved ones while away from them, organise drop offs and pick ups with the pet sitters when to pick up their pets. An account system serves useful for customers to separate pet matters from personal ones as pet sitters can also access personal information about the pets in order to provide better personalised care for each pet's individual needs, while it also serves as a location for direct update of contact details for customer's convenience.
+The problem being solved by this application is the need for a secure method pet owners can create personal accounts with a pet sitter company to store personal information about customers, pets.
+This serves as a secure communication platform for pet sitters to inform customers regarding their loved ones while being away from them, organise drop offs and pick ups with the pet sitters when to pick up their pet. An account system serves to separate pet matters from personal ones as pet sitters can also access personal information about the pets in order to provide better personalised care for each of the pet's individual needs.
+This application also serves as a location for direct update of contact details for customer's convenience.
 
 Future iterations of this application will allow customers to send messages to pet sitters and enable the communication services to be a two-way direction service instead of just a one-way service. 
 
@@ -37,6 +39,7 @@ Future iterations of this application will allow customers to send messages to p
 There are many database management systems available, each with their own advantages and disadvantages, suited for different situations. To ensure the most appropriate type of database management system was used for this application, an analysis was done to study all the different alternative options. An analysis of the chosen system was developed and is shown below in Table 1 and 2.  
 
 #### Relational Database Management System (RDBMS)
+
 #### PostgreSQL Database Management
 
 ### R4 Functionalities and Benefits of an ORM
@@ -44,11 +47,17 @@ There are many database management systems available, each with their own advant
 ### R7 Third Party Services
 
 #### SQLAlchemy
+
 #### Psycopg2
+
 #### Flask-Marshmallow
+
 #### Python-Dotenv
+
 #### Flask-Bcrypt
+
 #### Flask-JWT-Extended
+
 
 ### R8 Description of Models Relationship
 ### R6 & R9 ERD & Database Relations Implementation
@@ -69,8 +78,9 @@ I began the project by creating the Trello board for this project using the Kanb
  
 ### User Story Utilisation
 
-After creating the preliminary tasks, this helped me determine the key tasks required to create this application. Each short explanations outlined a specific user need outlining what each role was, what action needed to be performed and why. Following the agile methodology, they were expressed through user perspective and were used to help establish tasks to be completed. These user stories informed me as a developer of what data and information needs to be stored in the database, the routes/end points required to be made (Agile Alliance, 2022). This ensures the application delivered the highest value to the end user by ensuring the core needs were met and end users were kept in mind as a priority.  
-In future projects, I would write this before writing the problem documentation and creating an ERD for the project.
+After creating the preliminary tasks, this helped me determine the key tasks required to create the application. Each short explanation outlined a specific user need outlining what each role was, what action needed to be performed and why. Following the agile methodology, they were expressed through user perspective and were used to help establish tasks to be completed (Atlassian, unknown). These user stories informed me as a developer of what data and information needs to be stored in the database, the routes/end points required to be made (Agile Alliance, 2022). This ensures the application delivered the highest value to the end user by ensuring the core needs were met and end users were kept in mind as a priority (Atlassian, unknown).  
+
+In future projects, I would write this before writing the problem documentation and creating an ERD for the project, as this would have allowed me to better map the ERD .
 
 ### Prioritisation, Timeframes and Labels
 
@@ -79,6 +89,10 @@ After writing user stories, I wrote a checklist of tasks to be completed for eac
 
 ### Adding Assessable Elements
 
-I also added tasks to be completed that needed to meet assesment requirements outlined in the rubric. This allowed me to mark tasks as complete as I progressed through the assignment and know which outstanding tasks are needed to complete before the deadline. 
+I also added tasks to be completed that needed to meet assesment requirements and marks outlined in the assignment rubric. This allowed me to mark tasks as complete as I progressed through the assignment and know which outstanding tasks are needed to complete before the deadline. 
 
 ### References
+
+Agile Alliance. (2022). Agile 101 What is Agile? Retrieved 12 July, 2023, from https://www.agilealliance.org/agile101/
+
+https://www.atlassian.com/agile/project-management/user-stories

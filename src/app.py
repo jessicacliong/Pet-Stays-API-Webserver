@@ -1,17 +1,22 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, abort
 from flask_marshmallow import Marshmallow 
-app = Flask(__name__)
-ma = Marshmallow(app)
 from flask_sqlalchemy import SQLAlchemy 
-from datetime import date 
 from marshmallow.validate import Length 
 from flask_bcrypt import Bcrypt
+from datetime import date, timedelta
+from flask_jwt_extended import JWTManager, create_access_token
+
+app = Flask(__name__)
+ma = Marshmallow(app)
 bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
 
 # set the database URI via SQLAlchemy
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://db_dev:12345abc@localhost:5432/pet_sitting_api"
 # to avoid the deprecation warning
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# secret key for jwt module to use
+app.config["JWT_SECRET_KEY"] = "Backend best end" 
 #create the database object
 db = SQLAlchemy(app)
 
@@ -141,7 +146,7 @@ class Customer(db.Model):
 class Pet(db.Model):
   # define the table name for the db
   __tablename__= "Pet"
-   # Set the primary key, we need to define that each attribute is also a column in the db table
+  # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes. 
   name = db.Column(db.String())
@@ -205,12 +210,86 @@ message_schema = MessageSchema()
 #multiple message schema, when many cards need to be retrieved
 messages_schema = MessageSchema(many=True)
 
+# @app.route("/messages", methods=["GET"])
+# def get_messages():
+#   # get all the cards from the database table
+#   messages_list = Message.query.all()
+#   # Convert the messages from the database into a JSON format and store them in result
+#   result = messages_schema.dump(messages_list)
+#   # return the data in JSON format
+#   return jsonify(result)    
 
-@app.route("/messages", methods=["GET"])
-def get_messages():
-  # get all the cards from the database table
-  messages_list = Message.query.all()
-  # Convert the messages from the database into a JSON format and store them in result
-  result = messages_schema.dump(messages_list)
-  # return the data in JSON format
-  return jsonify(result)
+@app.route("/auth/register/customer", methods=["POST"])
+def auth_register_customer():
+  #The request data will be loaded in a customer_schema converted to JSON
+    customer_fields = customer_schema.load(request.json)
+    # find the customer
+    customer = Customer.query.filter_by(email=customer_fields["email"]).first()
+
+    if customer:
+      # return an abort message to inform the customer. That will end the request
+      return abort(400, description="Email already registered")
+    #Create the user object
+    customer = Customer()
+    #Add first name attribute
+    customer.first_name = customer_fields["first_name"]
+    #Add last name attribute
+    customer.last_name = customer_fields["last_name"]
+    #Add the email attribute
+    customer.email = customer_fields["email"]
+    #Add the password attribute hashed by bcrypt
+    customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
+    #Add it to the database and commit the changes
+    db.session.add(customer)
+    db.session.commit()
+    #create a variable that sets an expiry date
+    expiry = timedelta(days=1)
+    #create the access token
+    access_token = create_access_token(identity=str(customer.id), expires_delta=expiry)
+    #Return the user to check the request was successful
+    return jsonify(customer_schema.dump(customer))
+
+@app.route("/auth/login/customer", methods=["POST"])
+def auth_login():
+  #get the user data from the request
+  customer_fields = customer_schema.load(request.json)
+  #find the user in the database by email
+  customer = Customer.query.filter_by(email=customer_fields["email"]).first()
+  # there is not a user with that email or if the password is no correct send an error
+  if not customer or not bcrypt.check_password_hash(customer.password, customer_fields["password"]):
+      return abort(401, description="Incorrect username and password")
+  
+  #create a variable that sets an expiry date
+  expiry = timedelta(days=1)
+  #create the access token
+  access_token = create_access_token(identity=str(customer.id), expires_delta=expiry)
+  # return the user email and the access token
+  return jsonify({"customer":customer.email, "token": access_token })
+
+
+
+# @app.route("/auth/register/staff", methods=["POST"])
+# def auth_register():
+#   #The request data will be loaded in a pet_sitter_schema converted to JSON
+#     pet_sitter_fields = pet_sitter_schema.load(request.json)
+#     # find the staff details
+#     pet_sitter = PetSitter.query.filter_by(email=pet_sitter_fields["email"]).first()
+
+#     if pet_sitter:
+#       # return an abort message to inform the customer. That will end the request
+#       return abort(400, description="Email already registered")
+#     #Create the user object
+#     pet_sitter = PetSitter()
+#     #Add first name attribute
+#     pet_sitter.first_name = pet_sitter_fields["first_name"]
+#     #Add last name attribute
+#     pet_sitter.last_name = pet_sitter_fields["last_name"]
+#     #Add the email attribute
+#     pet_sitter.email = pet_sitter_fields["email"]
+#     #Add the password attribute hashed by bcrypt
+#     pet_sitter.password = bcrypt.generate_password_hash(pet_sitter_fields["password"]).decode("utf-8")
+#     #Add it to the database and commit the changes
+#     db.session.add(pet_sitter)
+#     db.session.commit()
+#     #Return the user to check the request was successful
+#     return jsonify(customer_schema.dump(pet_sitter))

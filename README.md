@@ -4,7 +4,7 @@
 
 ## [ERD](https://app.diagrams.net/#G1I-4U3wv1i2_V0kGVO5lwG6Q1FaRff3eB)
 
-### Table of Contents
+## Table of Contents
 
 - [Pet Stays Web Server API Documentation](#pet-hotel-web-server-api-documentation)
 - [R1 and R2 Problem Identification and Justification]()
@@ -26,7 +26,7 @@
 - [Reference List](#reference-list)
 
 
-### R1 and R2 Problem Identification and Justification
+## R1 and R2 Problem Identification and Justification
 
 The problem being solved by this application is the need for a secure method pet owners can create personal accounts with a pet sitter company to store personal information about customers and their pets respectively.
 This serves as a secure communication platform for pet sitters to inform customers regarding their loved ones while being away from them, organise drop offs and pick ups with the pet sitters in a secure manner segragating and organising communications from the normal messaging applications they may already utilise. An account system serves to separate pet matters from personal ones as pet sitters can also access personal information about the pets in order to provide better personalised care for each of the pet's individual needs.
@@ -34,11 +34,11 @@ This application also serves as a location to directly update contact details fo
 
 Future iterations of this application will allow customers to send messages to pet sitters and enable the communication services to be a two-way direction service instead of just a one-way service. 
 
-### R3 Justification of the Database System
+## R3 Justification of the Database System
 
 There are many database management systems available, each with their own advantages and disadvantages and suitable for different situations and conditions. To ensure the most appropriate type of database management system was used for this application, an analysis was done to study all the different alternative database system options currently available to utilise.
 
-#### Relational Database Management System (RDBMS)
+__Relational Database Management System (RDBMS)__
 
 A Relational Database Management System (RDBMS) was chosen for this application to clearly define different tables (entities) and establish relationship between these entities (Microsoft, 2022). The ability for data to be organised in a structured manner and allow users to rapidly request complex queries with ease are the many advantages of using RDBMS (Dolphin, 2022). 
 RDBMS enables a clear structure of tables for the pet_sitting_db and the distinct relations illustrated between each created entity (Customer, Pet, Pet Sitters and Messages delivered by Pet Sitters). 
@@ -54,7 +54,7 @@ The advantages and disadvantages of RDBMS are summarised below:
 
 
 
-#### PostgreSQL Database Management
+__PostgreSQL Database Management__
 
 PostgreSQL was chosen for the database system of this application for it's stability and powerful, enterprise class, object-relational database system commonly utilized as a back-end database for many available web applications. 
 It offers numerous advantages that align well with the requirements of this application (see table below).
@@ -70,7 +70,7 @@ While PostgreSQL's documentation is mainly available in English, it should not s
 
 The installation and configuration processes may be slightly more complex compared to MySQL and other systems. However, these processes are well-documented and solveable in a short term (Ionos, 2022) (Peterson, 2022).
 
-Advantages
+__Advantages__
 
 - PostgreSQL is a freely available and open-source database system that offers users the flexibility to customize and expand its functionalities, including the addition of new data types, functions, operators, indexing methods, and procedural languages.
 
@@ -94,7 +94,7 @@ Advantages
 
 - Widely used in different industries, PostgreSQL serves as a favored back-end database for web applications, dynamic websites, and finds applications in the financial sector, geographic information systems, and manufacturing.
 
-Disadvantages
+__Disadvantages__
 
 - PostgreSQL supports fewer open-source applications compared to MySQL.
 
@@ -111,35 +111,35 @@ Disadvantages
 - PostgreSQL's lack of a single company ownership can limit its marketing and awareness efforts.
 
 
-### R4 Functionalities and Benefits of an ORM
+## R4 Functionalities and Benefits of an ORM
 
 The benefits of an ORM are 
 
 
-### R5 API Endpoints
+## R5 API Endpoints
 
-### R7 Third Party Services
+## R7 Third Party Services
 
 The RESTful API for this project was constructed using Flask, a web application framework. Flask offers essential routing capabilities, handling requests, responses, and includes a development server. To create a fast, efficient, and scalable API, Flask leverages various high-level components that collaborate seamlessly together. Being a micro framework, Flask allows the addition of extra functionality through various packages. One of its notable features is agnosticism, which allows developers to replace major components of the framework with alternatives to suit their projects, thus providing flexibility and the freedom to design the server according to their preferences (Pallets, 2010). The development of this API also involved the use of several third-party PyPi packages. For a comprehensive list of dependencies and requirements, please refer to Requirements.txt.
 
-#### SQLAlchemy
+__SQLAlchemy__
 
 The Object-Relational Mapping (ORM) tool utilised for this application is SQLAlchemy. SQLAlchemy is a popular and reputable Python library that facilitates the connection to PostgreSQL. By using SQLAlchemy, the application can interact with the database without writing explicit SQL queries or handling data type conversions. Instead, queries are formulated in Python by invoking methods on a class, and the ORM takes care of sanitizing the input data. It further translates the Python-based query into SQL and retrieves the results as objects. This abstraction simplifies data manipulation and enhances the efficiency of working with the database (SQLAlchemy, 2022).
 
-#### Psycopg2
+__Psycopg2__
 
 In this project, Psycopg2 served as the bridge connecting the PostgreSQL database with the Flask application. While SQLAlchemy is compatible with various databases, it relies on an additional package, specific to the type of database being used, to facilitate interactions. This package acts as a driver or adaptor, enabling SQLAlchemy to communicate effectively with the chosen database (SQLAlchemy, 2022).
 
-#### Flask-Marshmallow
+__Flask-Marshmallow__
 
 Marshmallow schemas were utilized to facilitate the conversion of intricate data types, like objects, to and from Python's native data types. These schemas served multiple purposes, including: validating input data to ensure it meets the required criteria, deserializing input data into application-level objects for further processing, serializing application-level objects into primitive Python types. These serialized objects can be rendered into JSON format for use in the HTTP API (Pallets, 2010).
 
-#### Python-Dotenv
+__Python-Dotenv__
 
 The application employs Python-Dotenv to establish environment variables specified in the ".env" and ".flaskenv" files. 
 The ".flaskenv" file contains essential details for project execution, such as the application's running location, port number, and debug mode setting. On the other hand, the ".env" file is utilized to store sensitive configuration information, including the database connection stream containing passwords and the JWT secret key (Pallets, 2010). This approach enhances security compared to hard-coding such sensitive information directly into the application.
 
-#### Flask-Bcrypt
+__Flask-Bcrypt__
 
 Flask bcrypt is a Flask extension utilized to safeguard passwords through bcrypt hashing, which relies on the Blowfish cipher. This process involves converting a variable-length string of characters into a fixed-length value. The hashing function consistently generates the same output for a given input, and even a minor alteration in the input string will substantially alter the resulting hash. To further enhance security, the extension incorporates a "salt" to protect against potential rainbow table attacks. A rainbow table contains precomputed hash values that could be exploited to discover commonly used passwords (illustrated in figure 1 below). To counter this vulnerability, a random "salt" value is added to the original message before hashing it (Okta, 2022). Additionally, the bcrypt hashing functions can be intentionally slowed down to thwart brute force attacks.
 
@@ -150,18 +150,18 @@ password = bcrypt.generate_password_hash(request.json['password']).decode('utf8'
 ![Rainbow Password Hash Table](docs/password-salted-rainbow.png)
 
 
-#### Flask-JWT-Extended
+__Flask-JWT-Extended__
 
 The API incorporates the JWT Extended library to enable JSON Web Tokens (JWT) authentication. With JWT, the server verifies the user's credentials and responds by providing an encrypted token to the client. This token is ideally stored in session storage and added as an authorization header for subsequent requests. This implementation is crucial to safeguard personal information from unauthorized access. JWT is a suitable choice due to its open standard, self-contained nature, compactness, security, and scalability (Okta, 2022). The use of a secret key in the digital signature ensures that information can be verified and trusted, thereby confirming the identity of the person accessing the information (Andress, 2019). Each user's identity can be accessed via the JWT token, allowing the application to serve resources to specific users.
 
 Additionally, JWT helps eliminate the need for users to log in for each request. Functions such as create_access_token() enable the creation of JSON Web Tokens, jwt_required() protect routes, and get_jwt_identity() retrieve the identity of a JWT in a protected route. This simplifies and streamlines the authentication process within the API.
 
 
-### R8 Description of Models Relationship
-### R6 & R9 ERD & Database Relations Implementation
-### R10 Project Planning and Tracking Tasks
+## R8 Description of Models Relationship
+## R6 & R9 ERD & Database Relations Implementation
+## R10 Project Planning and Tracking Tasks
 
-#### Creating a Trello Board
+### Creating a Trello Board
 
 Trello was used to keep track of the development process of this project. The trello board was divided into 5 categories:
 

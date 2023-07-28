@@ -21,6 +21,7 @@ app.config["JWT_SECRET_KEY"] = "Backend best end"
 #create the database object
 db = SQLAlchemy(app)
 
+#after becomes a main.py, uncomment these 
 # def create_app():
 #   # using a list comprehension and multiple assignment 
 #   # to grab the environment variables we need
@@ -185,9 +186,9 @@ class CustomerSchema(ma.Schema):
     #set the password's length to a minimum of 6 characters
     password = ma.String(validate=Length(min=6))
 
-#single pet sitter schema, when one card needs to be retrieved
+#single pet sitter schema, when one customer needs to be retrieved
 customer_schema = CustomerSchema()
-#multiple message schema, when many cards need to be retrieved
+#multiple message schema, when many customers need to be retrieved
 customers_schema = CustomerSchema(many=True)
 
 class PetSchema(ma.Schema):
@@ -195,9 +196,9 @@ class PetSchema(ma.Schema):
         ordered = True
         fields = ["id", "name", "drop_off_date", "pick_up_date"]
 
-#single pet sitter schema, when one card needs to be retrieved
+#single pet sitter schema, when one pet needs to be retrieved
 pet_schema = PetSchema()
-#multiple message schema, when many cards need to be retrieved
+#multiple message schema, when many pets need to be retrieved
 pets_schema = PetSchema(many=True)
 
 #create the Message Schema with Marshmallow, it will provide the serialization needed for converting the data into JSON
@@ -211,6 +212,8 @@ message_schema = MessageSchema()
 #multiple message schema, when many cards need to be retrieved
 messages_schema = MessageSchema(many=True)
 
+# Messages Routes
+
 # @app.route("/messages", methods=["GET"])
 # def get_messages():
 #   # get all the cards from the database table
@@ -219,6 +222,9 @@ messages_schema = MessageSchema(many=True)
 #   result = messages_schema.dump(messages_list)
 #   # return the data in JSON format
 #   return jsonify(result)    
+
+
+#Authorisation Routes
 
 @app.route("/auth/customer/register", methods=["POST"])
 def auth_register_customer():
@@ -267,6 +273,119 @@ def auth_login():
   # return the user email and the access token
   return jsonify({"customer":customer.email, "token": access_token })
 
+
+#Customer routes
+
+@app.route("/customer/<int:id>", methods=["GET"])
+@jwt_required
+def get_customer_details():
+  # get all the cards from the database table
+  customer_list = Customer.query.all()
+  # Convert the messages from the database into a JSON format and store them in result
+  result = messages_schema.dump(messages_list)
+  # return the data in JSON format
+  return jsonify(result)  
+
+
+@app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
+@jwt_required()
+def update_customer(id):
+    customer_fields = customer_schema.load(request.json)
+    #get the customer id invoking get_jwt_identity
+    customer_id = get_jwt_identity()
+    #Find it in the db
+    customer = Customer.query.get(customer_id)
+    if customer:
+      if id != get_jwt_identity():
+        return {'error': 'Only corresponding customers can edit their details'}, 403
+      
+        customer.first_name = customer_fields['first_name']
+        customer.last_name = customer_fields["last_name"]
+        customer.email = customer_fields["email"]
+        customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
+        # (how to crypt the password?)
+        db.session.commit()
+        return jsonify(customer_schema.dump(customer))
+
+Get the customer id invoking get_jwt_identity
+find in the database
+
+
+
+# Pet Sitter Routes
+
+@app.route("/auth/staff/register", methods=["POST"])
+def auth_register():
+  #The request data will be loaded in a pet_sitter_schema converted to JSON
+    pet_sitter_fields = pet_sitter_schema.load(request.json)
+    # find the staff details
+    pet_sitter = PetSitter.query.filter_by(email=pet_sitter_fields["email"]).first()
+
+    if pet_sitter:
+      # return an abort message to inform the customer. That will end the request
+      return abort(400, description="Email already registered")
+    #Create the user object
+    pet_sitter = PetSitter()
+    #Add first name attribute
+    pet_sitter.first_name = pet_sitter_fields["first_name"]
+    #Add last name attribute
+    pet_sitter.last_name = pet_sitter_fields["last_name"]
+    #Add the email attribute
+    pet_sitter.email = pet_sitter_fields["email"]
+    #Add the password attribute hashed by bcrypt
+    pet_sitter.password = bcrypt.generate_password_hash(pet_sitter_fields["password"]).decode("utf-8")
+    #Add it to the database and commit the changes
+    db.session.add(pet_sitter)
+    db.session.commit()
+    #Return the user to check the request was successful
+    return jsonify(customer_schema.dump(pet_sitter))
+
+
+# Admin Routes
+
+# @cards_bp.route('/customer/<int:id>', methods=['DELETE'])
+# @jwt_required()
+# def delete_customer(id):
+#     is_admin = authorise_as_admin 
+#     if not is_admin:
+#         return {'error': 'Not authorised to delete cards'}, 403
+#     stmt = db.select(Customer).filter_by(id=id)
+#     card = db.session.scalar(stmt)
+#     if customer:
+#         db.session.delete(customer)
+#         db.session.commit()
+#         return {'message': f'Card {card.title} deleted successfully'}
+#     else:
+#         return {'error': f'Card not found with id {id}'}, 404
+
+
+#add the id to let the server know the card we want to delete
+@app.route("/customer/<int:id>", methods=["DELETE"])
+@jwt_required()
+#Includes the id parameter
+def customer_delete(id):
+    #get the user id invoking get_jwt_identity
+    customer_id = get_jwt_identity()
+    #Find it in the db
+    customer = Customer.query.get(customer_id)
+    #Make sure it is in the database
+    if not customer:
+        return abort(401, description="Invalid user")
+    # Stop the request if the user is not an admin
+    if not admin_pet_sitter:
+        return abort(401, description="Unauthorised user")
+    # find the card
+    card = Card.query.filter_by(id=id).first()
+    #return an error if the card doesn't exist
+    if not Card:
+        return abort(400, description= "Card doesn't exist")
+    #Delete the card from the database and commit
+    db.session.delete(card)
+    db.session.commit()
+    #return the card in the response
+    return jsonify(card_schema.dump(card))
+
+
 # @app.route("/customer/<int:id>", methods=["GET"])
 # @jwt_required()
 # def get_customer_details(id):
@@ -305,53 +424,3 @@ def auth_login():
 #         else:
 #             return {'error': 'Not authorised to perform edit'}, 403
 #     return wrapper
-
-@app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
-@jwt_required()
-# @authorise_customer
-def update_customer(id):
-    body_data = customer_schema.load(request.get_json(), partial=True)
-    customer_id = get_jwt_identity() # the user who sent the request / they are trying to edit
-    stmt = db.select(Customer).filter_by(id=id)
-    customer = db.session.scalar(stmt)
-    if customer:
-        if str(customer.id) != get_jwt_identity():
-            return {'error': 'Only the corresponding customer can edit details'}, 403
-        customer.first_name = body_data.get('first_name') or customer.first_name
-        customer.last_name = body_data.get('last_name') or customer.last_name
-        customer.email = body_data.get('email') or customer.email
-        if body_data.get('password'):
-          user.password = bcrypt.generate_password_hash(body_data.get('password')).decode('utf-8')
-        # (how to crypt the password?)
-        db.session.commit()
-        return customer_schema.dump(customer)
-    else:
-        return {'error': f'Customer not found with id {id}'}, 404
-
-
-
-# @app.route("/auth/register/staff", methods=["POST"])
-# def auth_register():
-#   #The request data will be loaded in a pet_sitter_schema converted to JSON
-#     pet_sitter_fields = pet_sitter_schema.load(request.json)
-#     # find the staff details
-#     pet_sitter = PetSitter.query.filter_by(email=pet_sitter_fields["email"]).first()
-
-#     if pet_sitter:
-#       # return an abort message to inform the customer. That will end the request
-#       return abort(400, description="Email already registered")
-#     #Create the user object
-#     pet_sitter = PetSitter()
-#     #Add first name attribute
-#     pet_sitter.first_name = pet_sitter_fields["first_name"]
-#     #Add last name attribute
-#     pet_sitter.last_name = pet_sitter_fields["last_name"]
-#     #Add the email attribute
-#     pet_sitter.email = pet_sitter_fields["email"]
-#     #Add the password attribute hashed by bcrypt
-#     pet_sitter.password = bcrypt.generate_password_hash(pet_sitter_fields["password"]).decode("utf-8")
-#     #Add it to the database and commit the changes
-#     db.session.add(pet_sitter)
-#     db.session.commit()
-#     #Return the user to check the request was successful
-#     return jsonify(customer_schema.dump(pet_sitter))

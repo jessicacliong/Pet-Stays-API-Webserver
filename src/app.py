@@ -5,7 +5,6 @@ from marshmallow.validate import Length
 from flask_bcrypt import Bcrypt
 from datetime import date, timedelta
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
-import functools
 
 app = Flask(__name__)
 ma = Marshmallow(app)
@@ -54,7 +53,7 @@ def seed_db():
   )
   db.session.add(admin_pet_sitter)
 
-  staff1 = PetSitter(
+  pet_sitter = PetSitter(
     first_name="Kathy",
     last_name="Lee",
     email = "kathylee@petstays.com",
@@ -259,7 +258,7 @@ def auth_register_customer():
     return jsonify(customer_schema.dump(customer))
 
 @app.route("/auth/customer/login", methods=["POST"])
-def auth_login():
+def auth_login_customer():
   #get the user data from the request
   customer_fields = customer_schema.load(request.json)
   #find the user in the database by email
@@ -267,7 +266,7 @@ def auth_login():
   # there is not a user with that email or if the password is no correct send an error
   if not customer or not bcrypt.check_password_hash(customer.password, customer_fields["password"]):
       return abort(401, description="Incorrect username and password")
-  
+
   #create a variable that sets an expiry date
   expiry = timedelta(days=1)
   #create the access token
@@ -316,7 +315,7 @@ def update_customer():
 # Pet Sitter Routes
 
 @app.route("/auth/staff/register", methods=["POST"])
-def auth_register():
+def auth_register_staff():
   #The request data will be loaded in a pet_sitter_schema converted to JSON
     pet_sitter_fields = pet_sitter_schema.load(request.json)
     # find the staff details
@@ -341,10 +340,26 @@ def auth_register():
     #Return the user to check the request was successful
     return jsonify(customer_schema.dump(pet_sitter))
 
+@app.route("/auth/staff/login", methods=["POST"])
+def auth_login_staff():
+  #get the user data from the request
+  pet_sitter_fields = pet_sitter_schema.load(request.json)
+  #find the user in the database by email
+  pet_sitter = PetSitter.query.filter_by(email=pet_sitter_fields["email"]).first()
+  # there is not a user with that email or if the password is no correct send an error
+  if not pet_sitter or not bcrypt.check_password_hash(pet_sitter.password, pet_sitter_fields["password"]):
+      return abort(401, description="Incorrect username and password")
+
+  #create a variable that sets an expiry date
+  expiry = timedelta(days=1)
+  #create the access token
+  access_token = create_access_token(identity=str(pet_sitter.id), expires_delta=expiry)
+  # return the user email and the access token
+  return jsonify({"user":pet_sitter.email, "token": access_token })
 
 # Admin Routes
 
-@cards_bp.route('/customer/<int:id>', methods=['DELETE'])
+@app.route('/customer/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_customer(id):
     is_admin = authorise_as_admin 

@@ -286,30 +286,24 @@ def get_customer_details():
   # return the data in JSON format
   return jsonify(result)  
 
-
 @app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
 @jwt_required()
 def update_customer(id):
-    customer_fields = customer_schema.load(request.json)
-    #get the customer id invoking get_jwt_identity
-    customer_id = get_jwt_identity()
-    #Find it in the db
-    customer = Customer.query.get(customer_id)
-    if customer:
-      if id != get_jwt_identity():
-        return {'error': 'Only corresponding customers can edit their details'}, 403
-      
-        customer.first_name = customer_fields['first_name']
-        customer.last_name = customer_fields["last_name"]
-        customer.email = customer_fields["email"]
-        customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
-        # (how to crypt the password?)
-        db.session.commit()
-        return jsonify(customer_schema.dump(customer))
-
-Get the customer id invoking get_jwt_identity
-find in the database
-
+  customer_fields = customer_schema.load(request.json)
+  #get the customer id invoking get_jwt_identity
+  customer_id = get_jwt_identity()
+  #Find it in the db
+  customer = Customer.query.get(customer_id)
+  if customer:
+    if id != get_jwt_identity():
+      return {'error': 'Only corresponding customers can edit their details'}, 403
+      customer.first_name = customer_fields['first_name']
+      customer.last_name = customer_fields["last_name"]
+      customer.email = customer_fields["email"]
+      customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
+      # (how to crypt the password?)
+      db.session.commit()
+      return jsonify(customer_schema.dump(customer))
 
 
 # Pet Sitter Routes

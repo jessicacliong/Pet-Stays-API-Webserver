@@ -53,13 +53,21 @@ def seed_db():
   )
   db.session.add(admin_pet_sitter)
 
-  pet_sitter = PetSitter(
+  pet_sitter1 = PetSitter(
     first_name="Kathy",
     last_name="Lee",
     email = "kathylee@petstays.com",
     password = bcrypt.generate_password_hash("123456").decode("utf-8"),
   )
-  db.session.add(staff1)
+  db.session.add(pet_sitter1)
+
+  pet_sitter2 = PetSitter(
+    first_name="Jared",
+    last_name="Mcdonald",
+    email="kathylee@petstays.com",
+    password = bcrypt.generate_password_hash("123456").decode("utf-8"),
+  )
+  db.session.add(pet_sitter2)
 
   # This extra commit will end the transaction and generate the ids for the user
   db.session.commit()
@@ -82,37 +90,66 @@ def seed_db():
 
   db.session.add(customer2)
 
-  pet1 =  Pet(
+  pet1 = Pet(
     name = "Bruno",
-    drop_off_date = "20-06-2023", 
-    pick_up_date = "20-07-2023"
+    drop_off_date = "14-06-2023", 
+    pick_up_date = "20-06-2023",
+    customer= customer1,
+    pet_sitter = pet_sitter1
   )
 
   db.session.add(pet1)
 
   pet2 = Pet(
     name = "Diego",
-    drop_off_date = "25-06-2023", 
-    pick_up_date = "25-07-2023"
+    drop_off_date = "15-06-2023", 
+    pick_up_date = "25-06-2023",
+    customer = customer2,
+    pet_sitter = pet_sitter2
   )
 
   db.session.add(pet2)
 
   message1 = Message(
     date = date.today(),
-    title = "Pick Up",
-    content = "Hi Mary! Bruno is ready to be picked up any time today. Hope to see you soon!"
+    title = "Drop off",
+    content = "Hi Mary, you can drop off Bruno any time between 9am - 5pm on the 14th of June. See you soon!",
+    customer = customer1,
+    pet_sitter = pet_sitter1
   )
   # Add the object as a new row to the table
   db.session.add(message1)
 
   message2 = Message(
     date = date.today(),
-    title = "Drop off",
-    content = "Hi Mary, you can drop off Bruno any time between 9am - 5pm on the 20th of July. See you soon!"
+    title = "Pick Up",
+    content = "Hi Mary! Bruno is ready to be picked up any time today between 9am - 5pm on the 20th of June. Hope to see you soon!",
+    customer = customer1,
+    pet_sitter = pet_sitter1
   )
-  # Add the object as a new row to the table
+
   db.session.add(message2)
+
+  message3 = Message(
+    date = date.today(),
+    title = "Drop off",
+    content = "Hi John, you can drop off Diego any time between 9am - 5pm on the 15th of June. See you soon!",
+    customer = customer2,
+    pet_sitter = pet_sitter2
+  )
+
+  db.session.add(message3)
+
+  message4 = Message(
+  date = date.today(),
+  title = "Pick Up",
+  content = "Hi John, you can pick up Diego any time between 9am - 5pm on the 25th of June. See you soon!",
+  customer = customer2,
+  pet_sitter = pet_sitter2
+  )
+
+  # Add the object as a new row to the table
+  db.session.add(message4)
   # commit the changes
   db.session.commit()
   print("Table seeded")
@@ -122,40 +159,21 @@ def drop_db():
     db.drop_all()
     print("Tables dropped")
 
-class PetSitter(db.Model):
-  __tablename__= "Pet Sitter"
-  # Set the primary key, we need to define that each attribute is also a column in the db table
-  id = db.Column(db.Integer,primary_key=True)
-  # Add the rest of the attributes. 
-  first_name = db.Column(db.String())
-  last_name = db.Column(db.String())
-  email = db.Column(db.String())
-  password = db.Column(db.String())
-  admin = db.Column(db.Boolean(), default=False)
-
-class Customer(db.Model):
-  # define the table name for the db
-  __tablename__= "Customer"
-  # Set the primary key, we need to define that each attribute is also a column in the db table
-  id = db.Column(db.Integer,primary_key=True)
-  # Add the rest of the attributes. 
-  first_name = db.Column(db.String())
-  last_name = db.Column(db.String())
-  email = db.Column(db.String())
-  password = db.Column(db.String())
-
 class Pet(db.Model):
   # define the table name for the db
-  __tablename__= "Pet"
+  __tablename__= "pet"
   # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes. 
   name = db.Column(db.String())
   drop_off_date = db.Column(db.String())
   pick_up_date = db.Column(db.String())
+   # two foreign keys
+  customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
+  pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
 
 class Message(db.Model):
-  __tablename__= "Message"
+  __tablename__= "message"
   # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
@@ -163,8 +181,50 @@ class Message(db.Model):
   title = db.Column(db.String())
   content = db.Column(db.String())
   # # two foreign keys
-# customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
-# pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
+  customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
+  pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
+
+class PetSitter(db.Model):
+  __tablename__= "pet_sitter"
+  # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
+  id = db.Column(db.Integer,primary_key=True)
+  # Add the rest of the attributes. 
+  first_name = db.Column(db.String())
+  last_name = db.Column(db.String())
+  email = db.Column(db.String())
+  password = db.Column(db.String())
+  admin = db.Column(db.Boolean(), default=False)
+  pet_id = db.relationship(
+      "Pet",
+      backref="pet_sitter",
+      cascade="all, delete"
+  )
+  message_id = db.relationship(
+      "Message",
+      backref="pet_sitter",
+      cascade="all, delete"
+  )
+
+class Customer(db.Model):
+  # define the table name for the db
+  __tablename__= "customer"
+  # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
+  id = db.Column(db.Integer,primary_key=True)
+  # Add the rest of the attributes. 
+  first_name = db.Column(db.String())
+  last_name = db.Column(db.String())
+  email = db.Column(db.String())
+  password = db.Column(db.String())
+  pet_id = db.relationship(
+    "Pet",
+    backref="customer",
+    cascade="all, delete"
+  )
+  message_id = db.relationship(
+    "Message",
+    backref="customer",
+    cascade="all, delete"
+  )
 
 #create the Pet Sitter Schema with Marshmallow, it will provide the serialization needed for converting the data into JSON
 class PetSitterSchema(ma.Schema):
@@ -276,19 +336,18 @@ def auth_login_customer():
 
 #Customer routes
 
-@app.route("/customer", methods=["GET"])
-def get_all_customers():
-  # get all the customer details from the database table
-  customers_list = Customer.query.all()
-  # Convert the customers from the database into a JSON format and store them in result
-  result = customers_schema.dump(customers_list)
-  # return the data in JSON format
-  return jsonify(result)  
+# @app.route("/customer", methods=["GET"])
+# def get_all_customers():
+#   # get all the customer details from the database table
+#   customers_list = Customer.query.all()
+#   # Convert the customers from the database into a JSON format and store them in result
+#   result = customers_schema.dump(customers_list)
+#   # return the data in JSON format
+#   return jsonify(result)  
 
 @app.route("/customer/<int:id>", methods=["GET"])
 def get_one_customer_details(id):
-
-  stmt = db.select(Customer).filter_by(id=id)
+  stmt = db.select(Customer).filter_by(id=id).first()
   customer = db.session.scalar(stmt)
   if customer:
       return customer_schema.dump(customer)
@@ -303,7 +362,7 @@ def update_customer():
   customer_id = get_jwt_identity()
   #Find it in the db
   customer = Customer.query.get(customer_id)
-
+  #update the customer details with the given values
   customer.first_name = customer_fields['first_name']
   customer.last_name = customer_fields["last_name"]
   customer.email = customer_fields["email"]
@@ -334,6 +393,8 @@ def auth_register_staff():
     pet_sitter.email = pet_sitter_fields["email"]
     #Add the password attribute hashed by bcrypt
     pet_sitter.password = bcrypt.generate_password_hash(pet_sitter_fields["password"]).decode("utf-8")
+    #set the admin attribute to false
+    pet_sitter.admin = False
     #Add it to the database and commit the changes
     db.session.add(pet_sitter)
     db.session.commit()
@@ -357,23 +418,32 @@ def auth_login_staff():
   # return the user email and the access token
   return jsonify({"user":pet_sitter.email, "token": access_token })
 
+
 # Admin Routes
 
 @app.route('/customer/<int:id>', methods=['DELETE'])
 @jwt_required()
-def delete_customer(id):
+def delete_one_customer(id):
     is_admin = authorise_as_admin 
     if not is_admin:
-        return {'error': 'Not authorised to delete cards'}, 403
+        return {'error': 'Not authorised to delete customers'}, 403
     stmt = db.select(Customer).filter_by(id=id)
-    card = db.session.scalar(stmt)
+    customer = db.session.scalar(stmt)
     if customer:
         db.session.delete(customer)
         db.session.commit()
-        return {'message': f'Card {card.title} deleted successfully'}
+        return {'message': f'Customer {customer.first_name} {customer.last_name} deleted successfully'}
     else:
-        return {'error': f'Card not found with id {id}'}, 404
+        return {'error': f'Customer not found with id {id}'}, 404
 
+def authorise_as_admin():
+    pet_sitter_id =  get_jwt_identity()
+    stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
+    if not pet_sitter:
+      return abort(401, description="Invalid user")
+    pet_sitter = db.session.scalar(stmt)
+    #check if user is admin or not
+    return pet_sitter.is_admin
 
 # #add the id to let the server know the card we want to delete
 # @app.route("/customer/<int:id>", methods=["DELETE"])

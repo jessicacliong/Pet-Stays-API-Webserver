@@ -414,13 +414,13 @@ def auth_login_staff():
 
 #DElETE ROUTE
 
-#(Working, don't use authorise_as_admin!)
+#(Working can delete routes, but not restricted to admin. don't use authorise_as_admin!)
 @app.route('/customer/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_one_customer(id):
-    is_admin = authorise_as_admin
-    if not is_admin:
-        return {'error': 'Not authorised to delete customers'}, 403
+    # is_admin = authorise_as_admin
+    # if not is_admin:
+    #     return {'error': 'Not authorised to delete customers'}, 403
     stmt = db.select(Customer).filter_by(id=id)
     customer = db.session.scalar(stmt)
     if customer:

@@ -73,19 +73,19 @@ def seed_db():
   db.session.commit()
 
   customer1 = Customer(
-  first_name="Mary",
-  last_name="Brown",
-  email="marybrown@email.com",
-  password=bcrypt.generate_password_hash("123password").decode("utf-8")
+    first_name="Mary",
+    last_name="Brown",
+    email="marybrown@email.com",
+    password=bcrypt.generate_password_hash("123password").decode("utf-8")
   )
 
   db.session.add(customer1)
 
   customer2 = Customer(
-  first_name="John",
-  last_name="Smith",
-  email="johnsmith@email.com",
-  password=bcrypt.generate_password_hash("12345pass").decode("utf-8")
+    first_name="John",
+    last_name="Smith",
+    email="johnsmith@email.com",
+    password=bcrypt.generate_password_hash("12345pass").decode("utf-8")
   )
 
   db.session.add(customer2)
@@ -112,8 +112,8 @@ def seed_db():
 
   message1 = Message(
     date = date.today(),
-    title = "Drop off",
-    content = "Hi Mary, you can drop off Bruno any time between 9am - 5pm on the 14th of June. See you soon!",
+    title ="Drop off",
+    content ="Hi Mary\, you can drop off Bruno any time between 9am - 5pm on the 14th of June. See you soon!",
     customer = customer1,
     pet_sitter = pet_sitter1
   )
@@ -122,8 +122,8 @@ def seed_db():
 
   message2 = Message(
     date = date.today(),
-    title = "Pick Up",
-    content = "Hi Mary! Bruno is ready to be picked up any time today between 9am - 5pm on the 20th of June. Hope to see you soon!",
+    title ="Pick Up",
+    content ="Hi Mary! Bruno is ready to be picked up any time today between 9am - 5pm on the 20th of June. Hope to see you soon!",
     customer = customer1,
     pet_sitter = pet_sitter1
   )
@@ -132,8 +132,8 @@ def seed_db():
 
   message3 = Message(
     date = date.today(),
-    title = "Drop off",
-    content = "Hi John, you can drop off Diego any time between 9am - 5pm on the 15th of June. See you soon!",
+    title ="Drop off",
+    content ="Hi John, you can drop off Diego any time between 9am - 5pm on the 15th of June. See you soon!",
     customer = customer2,
     pet_sitter = pet_sitter2
   )
@@ -142,7 +142,7 @@ def seed_db():
 
   message4 = Message(
   date = date.today(),
-  title = "Pick Up",
+  title ="Pick Up",
   content = "Hi John, you can pick up Diego any time between 9am - 5pm on the 25th of June. See you soon!",
   customer = customer2,
   pet_sitter = pet_sitter2
@@ -230,8 +230,8 @@ class Customer(db.Model):
 class PetSitterSchema(ma.Schema):
     class Meta:
         ordered = True
-        fields = ["id", "first_name", "last_name", "email", "password", "admin"]
-        load_only = ["password", "admin"]
+        fields = ("id", "first_name", "last_name", "email", "password", "admin", "pet_id", "message_id")
+        load_only = ("password", "admin")
     #set the password's length to a minimum of 6 characters
     password = ma.String(validate=Length(min=6))
 
@@ -243,8 +243,8 @@ pet_sitters_schema = PetSitterSchema(many=True)
 class CustomerSchema(ma.Schema):
     class Meta:
         ordered = True
-        fields = ["id", "first_name", "last_name", "email", "password"]
-        load_only = ["password"]
+        fields = ("id", "first_name", "last_name", "email", "password", "pet_id", "message_id")
+        load_only = ("password")
     #set the password's length to a minimum of 6 characters
     password = ma.String(validate=Length(min=6))
 
@@ -256,7 +256,7 @@ customers_schema = CustomerSchema(many=True)
 class PetSchema(ma.Schema):
     class Meta:
         ordered = True
-        fields = ["id", "name", "drop_off_date", "pick_up_date"]
+        fields = ("id", "name", "drop_off_date", "pick_up_date")
 
 #single pet sitter schema, when one pet needs to be retrieved
 pet_schema = PetSchema()
@@ -276,8 +276,8 @@ messages_schema = MessageSchema(many=True)
 
 # Messages Routes
 
-# @app.route("/messages", methods=["GET"])
-# def get_messages():
+# @app.route("/customer/<int:id>/message/", methods=["GET"])
+# def get_customer_messages():
 #   # get all the cards from the database table
 #   messages_list = Message.query.all()
 #   # Convert the messages from the database into a JSON format and store them in result
@@ -285,6 +285,34 @@ messages_schema = MessageSchema(many=True)
 #   # return the data in JSON format
 #   return jsonify(result)    
 
+
+#Show all customer messages (working)
+@app.route("/customer/messages", methods=["GET"])
+def get_customer_messages():
+# get all the messages from the database table
+  messages_list = Message.query.all()
+  # Convert the messages from the database into a JSON format and store them in result
+  result = messages_schema.dump(messages_list)
+  # return the data in JSON format
+  return jsonify(result)    
+
+def authorise_as_admin():
+    pet_sitter_id = get_jwt_identity()
+    stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
+    if not pet_sitter_id:
+      return abort(401, description="Invalid user")
+    pet_sitter = db.session.scalar(stmt)
+    #check if user is admin or not
+    return pet_sitter.is_admin
+
+def authorise_as_unique_customer():
+    customer_id = get_jwt_identity()
+    stmt = db.select(customer).filter_by(id=customer_id)
+    if not customer_id:
+      return abort(401, description="Invalid customer")
+    customer = db.session.scalar(stmt)
+    #check if user is admin or not
+    return customer.id
 
 #Authorisation Routes
 
@@ -336,23 +364,14 @@ def auth_login_customer():
 
 #Customer routes
 
-# @app.route("/customer", methods=["GET"])
-# def get_all_customers():
-#   # get all the customer details from the database table
-#   customers_list = Customer.query.all()
-#   # Convert the customers from the database into a JSON format and store them in result
-#   result = customers_schema.dump(customers_list)
-#   # return the data in JSON format
-#   return jsonify(result)  
-
-@app.route("/customer/<int:id>", methods=["GET"])
-def get_one_customer_details(id):
-  stmt = db.select(Customer).filter_by(id=id).first()
-  customer = db.session.scalar(stmt)
-  if customer:
-      return customer_schema.dump(customer)
-  else:
-      return {'error': f'Customer not found with id {id}'}, 404
+@app.route("/customer", methods=["GET"])
+def get_all_customers():
+  # get all the customer details from the database table
+  customers_list = Customer.query.all()
+  # Convert the customers from the database into a JSON format and store them in result
+  result = customers_schema.dump(customers_list)
+  # return the data in JSON format
+  return jsonify(result)  
 
 @app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
 @jwt_required()
@@ -369,7 +388,6 @@ def update_customer():
   customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
   db.session.commit()
   return jsonify(customer_schema.dump(customer))
-
 
 # Pet Sitter Routes
 
@@ -421,6 +439,26 @@ def auth_login_staff():
 
 # Admin Routes
 
+@app.route("/customer/<int:id>", methods=["GET"])
+@jwt_required()
+def get_one_customer_detail(id):
+  is_admin = authorise_as_admin 
+  if not is_admin:
+    return {'error': 'Not authorised to get customer information'}, 403
+  if customer:
+    customer = Customer.query.filter_by(id=id)
+    result = customer_schema.dump(customer)
+    return jsonify(result)
+  else:
+      return {'error': f'Customer not found with id {id}'}, 404
+  # stmt = db.select(Card).filter_by(id=id)
+  # card = db.session.scalar(stmt)
+  # if card:
+  #     return card_schema.dump(card)
+  # else:
+  #     return {'error': f'Card not found with id {id}'}, 404
+
+#DElETE ROUTE
 @app.route('/customer/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_one_customer(id):
@@ -436,14 +474,26 @@ def delete_one_customer(id):
     else:
         return {'error': f'Customer not found with id {id}'}, 404
 
-def authorise_as_admin():
-    pet_sitter_id =  get_jwt_identity()
-    stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
-    if not pet_sitter:
-      return abort(401, description="Invalid user")
-    pet_sitter = db.session.scalar(stmt)
-    #check if user is admin or not
-    return pet_sitter.is_admin
+
+
+# @app.route('/customer/<int:id>/pet/', methods=['DELETE'])
+# @jwt_required()
+# def delete_one_pet():
+#     is_admin = authorise_as_admin 
+#     if not is_admin:
+#         return {'error': 'Not authorised to delete pet information'}, 403
+#     stmt = db.select(customer).filter_by(id=id)
+#     customer = db.session.scalar(stmt)
+#     if customer:
+#       stmt = db.select(pet).filter_by(id=id)
+#       pet = db.session.scalar(stmt)
+#     else:
+#       return {'error': f'Customer not found with id {id}'}, 404
+#     if pet:
+#         db.session.delete(pet)
+#         db.session.commit()
+#         return {'message': f'Pet {pet.name} deleted successfully'}
+     
 
 # #add the id to let the server know the card we want to delete
 # @app.route("/customer/<int:id>", methods=["DELETE"])
@@ -488,15 +538,3 @@ def authorise_as_admin():
 #   db.session.commit()
 #   #return the card in the response
 #   return jsonify(customer_schema.dump(new_customer))
-
-# def authorise_customer(fn):
-#     @functools.wraps(fn)
-#     def wrapper(*args, **kwargs):
-#         customer_id = get_jwt_identity()
-#         stmt = db.select(Customer).filter_by(id=customer_id)
-#         user = db.session.scalar(stmt)
-#         if customer_id:
-#             return fn(*args, **kwargs)
-#         else:
-#             return {'error': 'Not authorised to perform edit'}, 403
-#     return wrapper

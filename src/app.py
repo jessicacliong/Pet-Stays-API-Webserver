@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request, abort
-from flask_marshmallow import Marshmallow 
-from flask_sqlalchemy import SQLAlchemy 
-from marshmallow.validate import Length 
+from flask_marshmallow import Marshmallow
+from marshmallow import fields
+from flask_sqlalchemy import SQLAlchemy
+from marshmallow.validate import Length
 from flask_bcrypt import Bcrypt
 from datetime import date, timedelta
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
@@ -16,15 +17,15 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://db_dev:12345abc@l
 # to avoid the deprecation warning
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # secret key for jwt module to use
-app.config["JWT_SECRET_KEY"] = "Backend best end" 
+app.config["JWT_SECRET_KEY"] = "Backend best end"
 #create the database object
 db = SQLAlchemy(app)
 
-#after becomes a main.py, uncomment these 
+#after becomes a main.py, uncomment these
 # def create_app():
-#   # using a list comprehension and multiple assignment 
+#   # using a list comprehension and multiple assignment
 #   # to grab the environment variables we need
-  
+
 #   # Creating the flask app object - this is the core of our app!
 #   app = Flask(__name__)
 
@@ -33,7 +34,7 @@ db = SQLAlchemy(app)
 
 #   # creating our database object! This allows us to use our ORM
 #   db.init_app(app)
-  
+
 #   return app
 
 @app.cli.command("create")
@@ -92,7 +93,7 @@ def seed_db():
 
   pet1 = Pet(
     name = "Bruno",
-    drop_off_date = "14-06-2023", 
+    drop_off_date = "14-06-2023",
     pick_up_date = "20-06-2023",
     customer= customer1,
     pet_sitter = pet_sitter1
@@ -102,7 +103,7 @@ def seed_db():
 
   pet2 = Pet(
     name = "Diego",
-    drop_off_date = "15-06-2023", 
+    drop_off_date = "15-06-2023",
     pick_up_date = "25-06-2023",
     customer = customer2,
     pet_sitter = pet_sitter2
@@ -113,7 +114,7 @@ def seed_db():
   message1 = Message(
     date = date.today(),
     title ="Drop off",
-    content ="Hi Mary\, you can drop off Bruno any time between 9am - 5pm on the 14th of June. See you soon!",
+    content ="Hi Mary, you can drop off Bruno any time between 9am - 5pm on the 14th of June. See you soon!",
     customer = customer1,
     pet_sitter = pet_sitter1
   )
@@ -159,18 +160,31 @@ def drop_db():
     db.drop_all()
     print("Tables dropped")
 
+
 class Pet(db.Model):
   # define the table name for the db
   __tablename__= "pet"
   # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
-  # Add the rest of the attributes. 
+  # Add the rest of the attributes.
   name = db.Column(db.String())
   drop_off_date = db.Column(db.String())
   pick_up_date = db.Column(db.String())
    # two foreign keys
   customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
   pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
+
+class PetSchema(ma.Schema):
+    class Meta:
+        ordered = True
+        fields = ("id", "name", "drop_off_date", "pick_up_date")
+
+#single pet sitter schema, when one pet needs to be retrieved
+pet_schema = PetSchema()
+#multiple message schema, when many pets need to be retrieved
+pets_schema = PetSchema(many=True)
+
+
 
 class Message(db.Model):
   __tablename__= "message"
@@ -184,11 +198,26 @@ class Message(db.Model):
   customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
   pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
 
+#create the Message Schema with Marshmallow, it will provide the serialization needed for converting the data into JSON
+class MessageSchema(ma.Schema):
+    class Meta:
+        ordered = True
+        # Fields to expose
+        fields = ("id", "date", "title", "content", "customer", "pet_sitter")
+    customer = fields.Nested("CustomerSchema", only=("first_name","last_name"))
+    pet_sitter = fields.Nested("PetSitterSchema", only=("first_name","id"))
+
+#single message schema, when one card needs to be retrieved
+message_schema = MessageSchema()
+#multiple message schema, when many cards need to be retrieved
+messages_schema = MessageSchema(many=True)
+
+
 class PetSitter(db.Model):
   __tablename__= "pet_sitter"
   # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
   id = db.Column(db.Integer,primary_key=True)
-  # Add the rest of the attributes. 
+  # Add the rest of the attributes.
   first_name = db.Column(db.String())
   last_name = db.Column(db.String())
   email = db.Column(db.String())
@@ -205,12 +234,28 @@ class PetSitter(db.Model):
       cascade="all, delete"
   )
 
+#create the Pet Sitter Schema with Marshmallow, it will provide the serialization needed for converting the data into JSON
+class PetSitterSchema(ma.Schema):
+    class Meta:
+        ordered = True
+        fields = ("id", "first_name", "last_name", "email", "password", "admin", "customer", "pet_sitter")
+        load_only = ("password", "admin")
+
+    #set the password's length to a minimum of 6 characters
+    password = ma.String(validate=Length(min=6))
+
+#single pet sitter schema, when one card needs to be retrieved
+pet_sitter_schema = PetSitterSchema()
+#multiple message schema, when many cards need to be retrieved
+pet_sitters_schema = PetSitterSchema(many=True)
+
+
 class Customer(db.Model):
   # define the table name for the db
   __tablename__= "customer"
   # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
   id = db.Column(db.Integer,primary_key=True)
-  # Add the rest of the attributes. 
+  # Add the rest of the attributes.
   first_name = db.Column(db.String())
   last_name = db.Column(db.String())
   email = db.Column(db.String())
@@ -226,25 +271,11 @@ class Customer(db.Model):
     cascade="all, delete"
   )
 
-#create the Pet Sitter Schema with Marshmallow, it will provide the serialization needed for converting the data into JSON
-class PetSitterSchema(ma.Schema):
-    class Meta:
-        ordered = True
-        fields = ("id", "first_name", "last_name", "email", "password", "admin", "pet_id", "message_id")
-        load_only = ("password", "admin")
-    #set the password's length to a minimum of 6 characters
-    password = ma.String(validate=Length(min=6))
-
-#single pet sitter schema, when one card needs to be retrieved
-pet_sitter_schema = PetSitterSchema()
-#multiple message schema, when many cards need to be retrieved
-pet_sitters_schema = PetSitterSchema(many=True)
-
 class CustomerSchema(ma.Schema):
     class Meta:
         ordered = True
-        fields = ("id", "first_name", "last_name", "email", "password", "pet_id", "message_id")
-        load_only = ("password")
+        fields = ("id", "first_name", "last_name", "email", "password", "pet", "message")
+        load_only = ("password", "admin")
     #set the password's length to a minimum of 6 characters
     password = ma.String(validate=Length(min=6))
 
@@ -253,117 +284,42 @@ customer_schema = CustomerSchema()
 #multiple message schema, when many customers need to be retrieved
 customers_schema = CustomerSchema(many=True)
 
-class PetSchema(ma.Schema):
-    class Meta:
-        ordered = True
-        fields = ("id", "name", "drop_off_date", "pick_up_date")
 
-#single pet sitter schema, when one pet needs to be retrieved
-pet_schema = PetSchema()
-#multiple message schema, when many pets need to be retrieved
-pets_schema = PetSchema(many=True)
-
-#create the Message Schema with Marshmallow, it will provide the serialization needed for converting the data into JSON
-class MessageSchema(ma.Schema):
-    class Meta:
-        # Fields to expose
-        fields = ("id", "date", "title", "content")
-
-#single message schema, when one card needs to be retrieved
-message_schema = MessageSchema()
-#multiple message schema, when many cards need to be retrieved
-messages_schema = MessageSchema(many=True)
+def authorise_as_admin():
+  pet_sitter_id = get_jwt_identity()
+  stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
+  if not pet_sitter_id:
+    return abort(401, description="Invalid user")
+  pet_sitter = db.session.scalar(stmt)
+  #check if user is admin or not
+  return pet_sitter.is_admin
 
 # Messages Routes
 
-# @app.route("/customer/<int:id>/message/", methods=["GET"])
-# def get_customer_messages():
-#   # get all the cards from the database table
-#   messages_list = Message.query.all()
-#   # Convert the messages from the database into a JSON format and store them in result
-#   result = messages_schema.dump(messages_list)
-#   # return the data in JSON format
-#   return jsonify(result)    
-
-
 #Show all customer messages (working)
 @app.route("/customer/messages", methods=["GET"])
+# @jwt_required()
+# @authorise_as_admin
 def get_customer_messages():
-# get all the messages from the database table
+  # is_admin = authorise_as_admin
+  # if not is_admin:
+  #   return {'error': 'Not authorised to get customer information'}, 403
+  # get all the messages from the database table
   messages_list = Message.query.all()
   # Convert the messages from the database into a JSON format and store them in result
   result = messages_schema.dump(messages_list)
   # return the data in JSON format
-  return jsonify(result)    
+  return jsonify(result)
 
-def authorise_as_admin():
-    pet_sitter_id = get_jwt_identity()
-    stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
-    if not pet_sitter_id:
-      return abort(401, description="Invalid user")
-    pet_sitter = db.session.scalar(stmt)
-    #check if user is admin or not
-    return pet_sitter.is_admin
-
-def authorise_as_unique_customer():
-    customer_id = get_jwt_identity()
-    stmt = db.select(customer).filter_by(id=customer_id)
-    if not customer_id:
-      return abort(401, description="Invalid customer")
-    customer = db.session.scalar(stmt)
-    #check if user is admin or not
-    return customer.id
-
-#Authorisation Routes
-
-@app.route("/auth/customer/register", methods=["POST"])
-def auth_register_customer():
-  #The request data will be loaded in a customer_schema converted to JSON
-    customer_fields = customer_schema.load(request.json)
-    # find the customer
-    customer = Customer.query.filter_by(email=customer_fields["email"]).first()
-    if customer:
-      # return an abort message to inform the customer. That will end the request
-      return abort(400, description="Email already registered")
-    #Create the customer object
-    customer = Customer()
-    #Add first name attribute
-    customer.first_name = customer_fields["first_name"]
-    #Add last name attribute
-    customer.last_name = customer_fields["last_name"]
-    #Add the email attribute
-    customer.email = customer_fields["email"]
-    #Add the password attribute hashed by bcrypt
-    customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
-    #Add it to the database and commit the changes
-    db.session.add(customer)
-    db.session.commit()
-    #create a variable that sets an expiry date
-    expiry = timedelta(days=1)
-    #create the access token
-    access_token = create_access_token(identity=str(customer.id), expires_delta=expiry)
-    #Return the user to check the request was successful
-    return jsonify(customer_schema.dump(customer))
-
-@app.route("/auth/customer/login", methods=["POST"])
-def auth_login_customer():
-  #get the user data from the request
-  customer_fields = customer_schema.load(request.json)
-  #find the user in the database by email
-  customer = Customer.query.filter_by(email=customer_fields["email"]).first()
-  # there is not a user with that email or if the password is no correct send an error
-  if not customer or not bcrypt.check_password_hash(customer.password, customer_fields["password"]):
-      return abort(401, description="Incorrect username and password")
-
-  #create a variable that sets an expiry date
-  expiry = timedelta(days=1)
-  #create the access token
-  access_token = create_access_token(identity=str(customer.id), expires_delta=expiry)
-  # return the user email and the access token
-  return jsonify({"customer":customer.email, "token": access_token })
+# is_admin = authorise_as_admin
+#     if not is_admin:
+#         return {'error': 'Not authorised to delete customers'}, 403
+#     stmt = db.select(Customer).filter_by(id=id)
+#     customer = db.session.scalar(stmt)
 
 #Customer routes
 
+#(Working but needs authorisation code)
 @app.route("/customer", methods=["GET"])
 def get_all_customers():
   # get all the customer details from the database table
@@ -371,8 +327,23 @@ def get_all_customers():
   # Convert the customers from the database into a JSON format and store them in result
   result = customers_schema.dump(customers_list)
   # return the data in JSON format
-  return jsonify(result)  
+  return jsonify(result)
 
+#(Working, don't use authorise_as_admin function!)
+@app.route("/customer/<int:id>", methods=["GET"])
+@jwt_required()
+def get_one_customer_detail(id):
+  is_admin = authorise_as_admin
+  if not is_admin:
+    return {'error': 'Not authorised to get customer information'}, 403
+  stmt = Customer.query.filter_by(id=id)
+  customer = db.session.scalar(stmt)
+  if customer:
+    return customer_schema.dump(customer)
+  else:
+    return {'error': f'Customer not found with id {id}'}, 404
+
+#(working)
 @app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
 @jwt_required()
 def update_customer():
@@ -391,6 +362,7 @@ def update_customer():
 
 # Pet Sitter Routes
 
+# (Working)
 @app.route("/auth/staff/register", methods=["POST"])
 def auth_register_staff():
   #The request data will be loaded in a pet_sitter_schema converted to JSON
@@ -419,6 +391,7 @@ def auth_register_staff():
     #Return the user to check the request was successful
     return jsonify(customer_schema.dump(pet_sitter))
 
+# (Working)
 @app.route("/auth/staff/login", methods=["POST"])
 def auth_login_staff():
   #get the user data from the request
@@ -428,7 +401,6 @@ def auth_login_staff():
   # there is not a user with that email or if the password is no correct send an error
   if not pet_sitter or not bcrypt.check_password_hash(pet_sitter.password, pet_sitter_fields["password"]):
       return abort(401, description="Incorrect username and password")
-
   #create a variable that sets an expiry date
   expiry = timedelta(days=1)
   #create the access token
@@ -439,30 +411,14 @@ def auth_login_staff():
 
 # Admin Routes
 
-@app.route("/customer/<int:id>", methods=["GET"])
-@jwt_required()
-def get_one_customer_detail(id):
-  is_admin = authorise_as_admin 
-  if not is_admin:
-    return {'error': 'Not authorised to get customer information'}, 403
-  if customer:
-    customer = Customer.query.filter_by(id=id)
-    result = customer_schema.dump(customer)
-    return jsonify(result)
-  else:
-      return {'error': f'Customer not found with id {id}'}, 404
-  # stmt = db.select(Card).filter_by(id=id)
-  # card = db.session.scalar(stmt)
-  # if card:
-  #     return card_schema.dump(card)
-  # else:
-  #     return {'error': f'Card not found with id {id}'}, 404
 
 #DElETE ROUTE
+
+#(Working, don't use authorise_as_admin!)
 @app.route('/customer/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_one_customer(id):
-    is_admin = authorise_as_admin 
+    is_admin = authorise_as_admin
     if not is_admin:
         return {'error': 'Not authorised to delete customers'}, 403
     stmt = db.select(Customer).filter_by(id=id)
@@ -474,12 +430,20 @@ def delete_one_customer(id):
     else:
         return {'error': f'Customer not found with id {id}'}, 404
 
-
+# (not used anywhere in code)
+def authorise_as_unique_customer():
+    customer_id = get_jwt_identity()
+    stmt = db.select(customer).filter_by(id=customer_id)
+    if not customer_id:
+      return abort(401, description="Invalid customer")
+    customer = db.session.scalar(stmt)
+    #check if user is admin or not
+    return customer.id
 
 # @app.route('/customer/<int:id>/pet/', methods=['DELETE'])
 # @jwt_required()
 # def delete_one_pet():
-#     is_admin = authorise_as_admin 
+#     is_admin = authorise_as_admin
 #     if not is_admin:
 #         return {'error': 'Not authorised to delete pet information'}, 403
 #     stmt = db.select(customer).filter_by(id=id)
@@ -493,7 +457,7 @@ def delete_one_customer(id):
 #         db.session.delete(pet)
 #         db.session.commit()
 #         return {'message': f'Pet {pet.name} deleted successfully'}
-     
+
 
 # #add the id to let the server know the card we want to delete
 # @app.route("/customer/<int:id>", methods=["DELETE"])

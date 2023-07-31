@@ -6,6 +6,7 @@ from marshmallow.validate import Length
 from flask_bcrypt import Bcrypt
 from datetime import date, timedelta
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
+import functools
 
 app = Flask(__name__)
 ma = Marshmallow(app)
@@ -111,6 +112,25 @@ def seed_db():
 
   db.session.add(pet2)
 
+  # pet_description_1 = PetDescription(
+  #   name = "Bruno",
+  #   animal_type = "Dog",
+  #   breed = "Chihuahua",
+  #   pet = pet1
+  # )
+
+  # db.session.add(pet_description_1)
+
+  # pet_description_2 = PetDescription(
+  #    name = "Diego",
+  #   animal_type = "Hamster",
+  #   breed = "Dwarf",
+  #   pet = pet2
+  # )
+
+  db.session.add(pet_description_2)
+
+
   message1 = Message(
     date = date.today(),
     title ="Drop off",
@@ -184,7 +204,32 @@ pet_schema = PetSchema()
 #multiple message schema, when many pets need to be retrieved
 pets_schema = PetSchema(many=True)
 
+# class PetDescription(db.Model):
+#   # define the table name for the db
+#   __tablename__= "pet_description"
+#   # Set the primary key, we need to define that each attribute is also a column in the db table
+#   id = db.Column(db.Integer,primary_key=True)
+#   # Add the rest of the attributes.
+#   name = db.Column(db.String())
+#   animal_type = db.Column(db.String())
+#   breed = db.Column(db.String())
+#    # foreign keys
+#   # pet = db.Column(db.Integer, db.ForeignKey("pet.id"),nullable=False)
+#   pet_id = db.relationship(
+#     "Pet",
+#     backref="PetDescription",
+#     cascade="all, delete"
+#   )
 
+# class PetDescriptionSchema(ma.Schema):
+#     class Meta:
+#         ordered = True
+#         fields = ("id", "name", "animal_type", "breed", )
+
+# #single pet sitter schema, when one pet needs to be retrieved
+# pet_description_schema = PetDescriptionSchema()
+# #multiple message schema, when many pets need to be retrieved
+# pet_descriptions_schema = PetDescriptionSchema(many=True)
 
 class Message(db.Model):
   __tablename__= "message"
@@ -284,83 +329,7 @@ customer_schema = CustomerSchema()
 #multiple message schema, when many customers need to be retrieved
 customers_schema = CustomerSchema(many=True)
 
-
-def authorise_as_admin():
-  pet_sitter_id = get_jwt_identity()
-  stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
-  if not pet_sitter_id:
-    return abort(401, description="Invalid user")
-  pet_sitter = db.session.scalar(stmt)
-  #check if user is admin or not
-  return pet_sitter.is_admin
-
-# Messages Routes
-
-#Show all customer messages (working)
-@app.route("/customer/messages", methods=["GET"])
-# @jwt_required()
-# @authorise_as_admin
-def get_customer_messages():
-  # is_admin = authorise_as_admin
-  # if not is_admin:
-  #   return {'error': 'Not authorised to get customer information'}, 403
-  # get all the messages from the database table
-  messages_list = Message.query.all()
-  # Convert the messages from the database into a JSON format and store them in result
-  result = messages_schema.dump(messages_list)
-  # return the data in JSON format
-  return jsonify(result)
-
-# is_admin = authorise_as_admin
-#     if not is_admin:
-#         return {'error': 'Not authorised to delete customers'}, 403
-#     stmt = db.select(Customer).filter_by(id=id)
-#     customer = db.session.scalar(stmt)
-
-#Customer routes
-
-#(Working but needs authorisation code)
-@app.route("/customer", methods=["GET"])
-def get_all_customers():
-  # get all the customer details from the database table
-  customers_list = Customer.query.all()
-  # Convert the customers from the database into a JSON format and store them in result
-  result = customers_schema.dump(customers_list)
-  # return the data in JSON format
-  return jsonify(result)
-
-#(Working, don't use authorise_as_admin function!)
-@app.route("/customer/<int:id>", methods=["GET"])
-@jwt_required()
-def get_one_customer_detail(id):
-  is_admin = authorise_as_admin
-  if not is_admin:
-    return {'error': 'Not authorised to get customer information'}, 403
-  stmt = Customer.query.filter_by(id=id)
-  customer = db.session.scalar(stmt)
-  if customer:
-    return customer_schema.dump(customer)
-  else:
-    return {'error': f'Customer not found with id {id}'}, 404
-
-#(working)
-@app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
-@jwt_required()
-def update_customer():
-  customer_fields = customer_schema.load(request.json)
-  #get the customer id invoking get_jwt_identity
-  customer_id = get_jwt_identity()
-  #Find it in the db
-  customer = Customer.query.get(customer_id)
-  #update the customer details with the given values
-  customer.first_name = customer_fields['first_name']
-  customer.last_name = customer_fields["last_name"]
-  customer.email = customer_fields["email"]
-  customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
-  db.session.commit()
-  return jsonify(customer_schema.dump(customer))
-
-# Pet Sitter Routes
+# Staff Routes
 
 # (Working)
 @app.route("/auth/staff/register", methods=["POST"])
@@ -409,18 +378,159 @@ def auth_login_staff():
   return jsonify({"user":pet_sitter.email, "token": access_token })
 
 
-# Admin Routes
+#Customer routes
+
+@app.route("/auth/customer/register", methods=["POST"])
+def auth_register_customer():
+  #The request data will be loaded in a customer_schema converted to JSON
+    customer_fields = customer_schema.load(request.json)
+    # find the customer
+    customer = Customer.query.filter_by(email=customer_fields["email"]).first()
+
+    if customer:
+      # return an abort message to inform the customer. That will end the request
+      return abort(400, description="Email already registered")
+    #Create the user object
+    customer = Customer()
+    #Add first name attribute
+    customer.first_name = customer_fields["first_name"]
+    #Add last name attribute
+    customer.last_name = customer_fields["last_name"]
+    #Add the email attribute
+    customer.email = customer_fields["email"]
+    #Add the password attribute hashed by bcrypt
+    customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
+    #Add it to the database and commit the changes
+    db.session.add(customer)
+    db.session.commit()
+    #create a variable that sets an expiry date
+    expiry = timedelta(days=1)
+    #create the access token
+    access_token = create_access_token(identity=str(customer.id), expires_delta=expiry)
+    #Return the user to check the request was successful
+    return jsonify(customer_schema.dump(customer))
+
+@app.route("/auth/customer/login", methods=["POST"])
+def auth_login():
+  #get the user data from the request
+  customer_fields = customer_schema.load(request.json)
+  #find the user in the database by email
+  customer = Customer.query.filter_by(email=customer_fields["email"]).first()
+  # there is not a user with that email or if the password is no correct send an error
+  if not customer or not bcrypt.check_password_hash(customer.password, customer_fields["password"]):
+      return abort(401, description="Incorrect username and password")
+  #create a variable that sets an expiry date
+  expiry = timedelta(days=1)
+  #create the access token
+  access_token = create_access_token(identity=str(customer.id), expires_delta=expiry)
+  # return the user email and the access token
+  return jsonify({"customer":customer.email, "token": access_token })
+
+def authorise_as_admin(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+      pet_sitter_id = get_jwt_identity()
+      stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
+      pet_sitter = db.session.scalar(stmt)
+      if pet_sitter.admin:
+        return fn(*args, **kwargs)
+      else:
+          return {'error': 'Not authorised to perform action'}, 403
+    return wrapper
+
+def authorise_customer(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+      customer_id = get_jwt_identity()
+      stmt = db.select(Customer).filter_by(id=customer_id)
+      customer = db.session.scalar(stmt)
+      if customer.id != id:
+        return {'error': 'Customer not authorised to perform action'}, 403
+      else:
+        return fn(*args, **kwargs)
+    return wrapper
+
+# OK!
+@app.route("/customer", methods=["GET"])
+@jwt_required()
+@authorise_as_admin
+def get_all_customers():
+  admin = authorise_as_admin
+  # get all the customer details from the database table
+  customers_list = Customer.query.all()
+  # Convert the customers from the database into a JSON format and store them in result
+  result = customers_schema.dump(customers_list)
+  # return the data in JSON format
+  return jsonify(result)
+
+# Messages Routes
+
+# OK
+@app.route("/customer/messages", methods=["GET"])
+@jwt_required()
+@authorise_as_admin
+def get_customer_messages():
+  admin = authorise_as_admin
+  # customer = authorise_customer
+  # get all the messages from the database table
+  messages_list = Message.query.all()
+  # Convert the messages from the database into a JSON format and store them in result
+  result = messages_schema.dump(messages_list)
+  # return the data in JSON format
+  return jsonify(result)
+
+# @app.route("/customer/<int:id>/messages", methods=["GET"])
+# @jwt_required()
+# def get_customer_messages():
+#   admin = authorise_as_admin
+#   # customer = authorise_customer
+#   # get all the messages from the database table
+#   messages_list = Message.query.all()
+#   # Convert the messages from the database into a JSON format and store them in result
+#   result = messages_schema.dump(messages_list)
+#   # return the data in JSON format
+#   return jsonify(result)
 
 
-#DElETE ROUTE
+#(OK, still fixing authorisation)
+@app.route("/customer/<int:id>", methods=["GET"])
+@jwt_required()
+@authorise_customer
+def get_one_customer_detail(id):
+  customer = authorise_customer
+  stmt = Customer.query.filter_by(id=id)
+  customer = db.session.scalar(stmt)
+  if customer:
+    return customer_schema.dump(customer)
+  else:
+    return {'error': f'Customer not found with id {id}'}, 404
 
-#(Working can delete routes, but not restricted to admin. don't use authorise_as_admin!)
+#(working)
+@app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
+@jwt_required()
+def update_customer():
+  customer_fields = customer_schema.load(request.json)
+  #get the customer id invoking get_jwt_identity
+  customer_id = get_jwt_identity()
+  #Find it in the db
+  customer = Customer.query.get(customer_id)
+  #update the customer details with the given values
+  customer.first_name = customer_fields['first_name']
+  customer.last_name = customer_fields["last_name"]
+  customer.email = customer_fields["email"]
+  customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
+  db.session.commit()
+  return jsonify(customer_schema.dump(customer))
+
+
+#(Working)
 @app.route('/customer/<int:id>', methods=['DELETE'])
 @jwt_required()
+@authorise_as_admin
 def delete_one_customer(id):
-    # is_admin = authorise_as_admin
-    # if not is_admin:
-    #     return {'error': 'Not authorised to delete customers'}, 403
+    admin = authorise_as_admin
+    if not admin:
+        return {'error': 'Not authorised to delete cards'}, 403
     stmt = db.select(Customer).filter_by(id=id)
     customer = db.session.scalar(stmt)
     if customer:
@@ -430,15 +540,20 @@ def delete_one_customer(id):
     else:
         return {'error': f'Customer not found with id {id}'}, 404
 
-# (not used anywhere in code)
-def authorise_as_unique_customer():
-    customer_id = get_jwt_identity()
-    stmt = db.select(customer).filter_by(id=customer_id)
-    if not customer_id:
-      return abort(401, description="Invalid customer")
-    customer = db.session.scalar(stmt)
-    #check if user is admin or not
-    return customer.id
+
+@app.route("/customer/<int:id>/pet", methods=["GET"])
+@jwt_required()
+@authorise_customer
+def get_pet_detail(id):
+  customer = authorise_customer
+  stmt = Customer.query.filter_by(id=id)
+  customer = db.session.scalar(stmt)
+  if customer:
+    return customer_schema.dump(customer)
+  else:
+    return {'error': f'Customer not found with id {id}'}, 404
+
+
 
 # @app.route('/customer/<int:id>/pet/', methods=['DELETE'])
 # @jwt_required()

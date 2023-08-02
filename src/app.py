@@ -46,30 +46,35 @@ def create_db():
 @app.cli.command("seed")
 def seed_db():
 
-  admin_pet_sitter = PetSitter(
+  pet_sitter1 = PetSitter(
     first_name="Jake",
     last_name="Daniels",
     email = "admin@petstays.com",
     password = bcrypt.generate_password_hash("password123").decode("utf-8"),
+    staff = True,
     admin = True
-  )
-  db.session.add(admin_pet_sitter)
-
-  pet_sitter1 = PetSitter(
-    first_name="Kathy",
-    last_name="Lee",
-    email = "kathylee@petstays.com",
-    password = bcrypt.generate_password_hash("123456").decode("utf-8"),
   )
   db.session.add(pet_sitter1)
 
   pet_sitter2 = PetSitter(
+    first_name="Kathy",
+    last_name="Lee",
+    email = "kathylee@petstays.com",
+    password = bcrypt.generate_password_hash("123456").decode("utf-8"),
+    staff = True,
+    admin = False
+   )
+  db.session.add(pet_sitter2)
+
+  pet_sitter3 = PetSitter(
     first_name="Jared",
     last_name="Mcdonald",
-    email="kathylee@petstays.com",
-    password = bcrypt.generate_password_hash("123456").decode("utf-8"),
+    email="jaredmcdonald@petstays.com",
+    password = bcrypt.generate_password_hash("5678910").decode("utf-8"),
+    staff = True,
+    admin = False
   )
-  db.session.add(pet_sitter2)
+  db.session.add(pet_sitter3)
 
   # This extra commit will end the transaction and generate the ids for the user
   db.session.commit()
@@ -128,7 +133,7 @@ def seed_db():
   #   pet = pet2
   # )
 
-  db.session.add(pet_description_2)
+  # db.session.add(pet_description_2)
 
 
   message1 = Message(
@@ -267,6 +272,7 @@ class PetSitter(db.Model):
   last_name = db.Column(db.String())
   email = db.Column(db.String())
   password = db.Column(db.String())
+  staff = db.Column(db.Boolean(), default=True)
   admin = db.Column(db.Boolean(), default=False)
   pet_id = db.relationship(
       "Pet",
@@ -283,7 +289,7 @@ class PetSitter(db.Model):
 class PetSitterSchema(ma.Schema):
     class Meta:
         ordered = True
-        fields = ("id", "first_name", "last_name", "email", "password", "admin", "customer", "pet_sitter")
+        fields = ("id", "first_name", "last_name", "email", "password", "staff", "admin", "customer", "pet")
         load_only = ("password", "admin")
 
     #set the password's length to a minimum of 6 characters
@@ -320,7 +326,7 @@ class CustomerSchema(ma.Schema):
     class Meta:
         ordered = True
         fields = ("id", "first_name", "last_name", "email", "password", "pet", "message")
-        load_only = ("password", "admin")
+        load_only = ("password", )
     #set the password's length to a minimum of 6 characters
     password = ma.String(validate=Length(min=6))
 
@@ -352,6 +358,8 @@ def auth_register_staff():
     pet_sitter.email = pet_sitter_fields["email"]
     #Add the password attribute hashed by bcrypt
     pet_sitter.password = bcrypt.generate_password_hash(pet_sitter_fields["password"]).decode("utf-8")
+    #set the staff attribute to true
+    pet_sitter.staff = True
     #set the admin attribute to false
     pet_sitter.admin = False
     #Add it to the database and commit the changes
@@ -438,24 +446,24 @@ def authorise_as_admin(fn):
           return {'error': 'Not authorised to perform action'}, 403
     return wrapper
 
-def authorise_customer(fn):
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-      customer_id = get_jwt_identity()
-      stmt = db.select(Customer).filter_by(id=customer_id)
-      customer = db.session.scalar(stmt)
-      if customer.id != id:
-        return {'error': 'Customer not authorised to perform action'}, 403
-      else:
-        return fn(*args, **kwargs)
-    return wrapper
+def authorise_staff(fn):
+  @functools.wraps(fn)
+  def wrapper(*args, **kwargs):
+    pet_sitter_id = get_jwt_identity()
+    stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
+    pet_sitter = db.session.scalar(stmt)
+    if pet_sitter.staff:
+      return fn(*args, **kwargs)
+    else:
+        return {'error': 'Not authorised to perform action'}, 403
+  return wrapper
 
 # OK!
 @app.route("/customer", methods=["GET"])
 @jwt_required()
-@authorise_as_admin
+@authorise_staff
 def get_all_customers():
-  admin = authorise_as_admin
+  staff = authorise_staff
   # get all the customer details from the database table
   customers_list = Customer.query.all()
   # Convert the customers from the database into a JSON format and store them in result
@@ -468,9 +476,9 @@ def get_all_customers():
 # OK
 @app.route("/customer/messages", methods=["GET"])
 @jwt_required()
-@authorise_as_admin
+@authorise_staff
 def get_customer_messages():
-  admin = authorise_as_admin
+  staff = authorise_staff
   # customer = authorise_customer
   # get all the messages from the database table
   messages_list = Message.query.all()
@@ -491,19 +499,18 @@ def get_customer_messages():
 #   # return the data in JSON format
 #   return jsonify(result)
 
-
-#(OK, still fixing authorisation)
-@app.route("/customer/<int:id>", methods=["GET"])
+#(OK, WORKINGGG!!!!)
+@app.route('/customer/<int:id>', methods=['GET'])
 @jwt_required()
-@authorise_customer
+@authorise_staff
 def get_one_customer_detail(id):
-  customer = authorise_customer
-  stmt = Customer.query.filter_by(id=id)
-  customer = db.session.scalar(stmt)
-  if customer:
-    return customer_schema.dump(customer)
-  else:
-    return {'error': f'Customer not found with id {id}'}, 404
+  staff = authorise_staff
+  customer_stmt = db.select(Customer).filter_by(id=id)
+  customer = db.session.scalar(customer_stmt)
+  if str(customer.id) == get_jwt_identity() or staff:
+        return customer_schema.dump(customer)
+  else: 
+    return {'error': f'Customer with id {customer.id} not found or staff with id {staff.id} not found'}, 404
 
 #(working)
 @app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
@@ -522,15 +529,26 @@ def update_customer():
   db.session.commit()
   return jsonify(customer_schema.dump(customer))
 
+def authorise_as_admin(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+      pet_sitter_id = get_jwt_identity()
+      stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
+      pet_sitter = db.session.scalar(stmt)
+      if pet_sitter.admin:
+        return fn(*args, **kwargs)
+      else:
+          return {'error': 'Not authorised to perform action'}, 403
+    return wrapper
 
-#(Working)
+#(Working!!!)
 @app.route('/customer/<int:id>', methods=['DELETE'])
 @jwt_required()
 @authorise_as_admin
 def delete_one_customer(id):
     admin = authorise_as_admin
     if not admin:
-        return {'error': 'Not authorised to delete cards'}, 403
+        return {'error': 'Not authorised to delete customer accounts'}, 403
     stmt = db.select(Customer).filter_by(id=id)
     customer = db.session.scalar(stmt)
     if customer:
@@ -541,18 +559,15 @@ def delete_one_customer(id):
         return {'error': f'Customer not found with id {id}'}, 404
 
 
-@app.route("/customer/<int:id>/pet", methods=["GET"])
+@app.route("/customer/<int:customer_id>/pet/<int:pet_id>", methods=["GET"])
 @jwt_required()
-@authorise_customer
 def get_pet_detail(id):
-  customer = authorise_customer
   stmt = Customer.query.filter_by(id=id)
   customer = db.session.scalar(stmt)
   if customer:
     return customer_schema.dump(customer)
   else:
     return {'error': f'Customer not found with id {id}'}, 404
-
 
 
 # @app.route('/customer/<int:id>/pet/', methods=['DELETE'])

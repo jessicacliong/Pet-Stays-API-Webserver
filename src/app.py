@@ -472,7 +472,7 @@ def get_all_customer_messages():
 #Works!
 @app.route("/customer/<int:customer_id>/messages", methods=["GET"])
 @jwt_required()
-def get_one_customers_messages(customer_idid):
+def get_one_customers_messages(customer_id):
   customer_id = get_jwt_identity()
   stmt = db.select(Customer).filter_by(id=customer_id)
   customer = db.session.scalar(stmt)
@@ -485,33 +485,56 @@ def get_one_customers_messages(customer_idid):
   else:
     return {'error': f'Messages not found for customer id {id}'}, 404
 
-OK!
+# Works with error handling
 @app.route('/customer/<int:customer_id>/message', methods=['POST'])
 @jwt_required()
 def create_message_to_customer(customer_id):
-    #get the user id invoking get_jwt_identity
-    pet_sitter_id = get_jwt_identity()
-    #Find it in the db
-    pet_sitter = PetSitter.query.get(pet_sitter_id)
-    #Make sure it is in the database
-    if not pet_sitter:
-        return {'error': f'Invalid user, unable to create a message'}, 401
-    #create the message with the given values
-    body_data = message_schema.load(request.get_json())
-    # create a new Card model instance
-    message = Message(
-      date = date.today(),
-      title = body_data.get('title'),
-      content = body_data.get('content'),
-      customer_id= customer_id,
-      pet_sitter_id= get_jwt_identity()
-    )
-    # Add that card to the session
-    db.session.add(message)
-    # Commit
-    db.session.commit()
-    # Respond to the client
-    return message_schema.dump(message), 201
+  #get the user id invoking get_jwt_identity
+  pet_sitter_id = get_jwt_identity()
+  #Find it in the db
+  pet_sitter_stmt = db.Select(PetSitter).filter_by(id=pet_sitter_id)
+  pet_sitter = db.session.scalar(pet_sitter_stmt)
+  #Make sure it is in the database
+  if pet_sitter:
+    stmt = db.Select(Customer).filter_by(id=customer_id)
+    customer = db.session.scalar(stmt)
+    if customer:
+      #create the message with the given values
+      body_data = message_schema.load(request.json)
+      # create a new Card model instance
+      message = Message(
+        date = date.today(),
+        title = body_data.get('title'),
+        content = body_data.get('content'),
+        customer_id= customer_id,
+        pet_sitter_id= get_jwt_identity(),
+      )
+        # Add that message to the session
+      db.session.add(message)
+      # Commit
+      db.session.commit()
+      # Respond to the client
+      return message_schema.dump(message), 201
+    else:
+      return {'error': f'Customer with id {customer_id} not found'}, 404
+  else:
+    return {'error': f'Invalid staff with id {pet_sitter_id}, unable to create a message'}, 401
+
+
+  # body_data = pet_schema.load(request.json)
+  # pet = Pet(
+  #   name = body_data.get('name'),
+  #   drop_off_date = body_data.get('drop_off_date'),
+  #   pick_up_date = body_data.get('pick_up_date'),
+  #   customer_id = body_data.get('customer_id'),
+  #   pet_sitter_id = body_data.get('pet_sitter_id'),
+  # )
+  # # add to the database and commit
+  # db.session.add(pet)
+  # #commit
+  # db.session.commit()
+  # #return the card in the response
+  # return pet_schema.dump(pet), 201
 
 # OK!
 @app.route("/customer", methods=["GET"])

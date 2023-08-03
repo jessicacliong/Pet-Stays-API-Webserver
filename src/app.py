@@ -539,7 +539,6 @@ def get_one_customer_detail(customer_id):
   customer_stmt = db.select(Customer).filter_by(id=customer_id)
   customer = db.session.scalar(customer_stmt)
   if customer:
-    # if str(customer.id) == get_jwt_identity() or str(pet_sitter.id) == get_jwt_identity():
     if str(customer.id) == get_jwt_identity():
         return customer_schema.dump(customer)
     else:

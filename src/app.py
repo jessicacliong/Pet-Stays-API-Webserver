@@ -97,9 +97,9 @@ def seed_db():
 
   pet1 = Pet(
     name = "Bruno",
-    drop_off_date = "14-06-2023",
-    pick_up_date = "20-06-2023",
-    customer= customer1,
+    drop_off_date = "14.06.2023",
+    pick_up_date = "20.06.2023",
+    customer = customer1,
     pet_sitter = pet_sitter1
   )
 
@@ -107,8 +107,8 @@ def seed_db():
 
   pet2 = Pet(
     name = "Diego",
-    drop_off_date = "15-06-2023",
-    pick_up_date = "25-06-2023",
+    drop_off_date = "15.06.2023",
+    pick_up_date = "25.06.2023",
     customer = customer2,
     pet_sitter = pet_sitter2
   )
@@ -375,7 +375,7 @@ def auth_login_staff():
   pet_sitter = PetSitter.query.filter_by(email=pet_sitter_fields["email"]).first()
   # there is not a user with that email or if the password is no correct send an error
   if not pet_sitter or not bcrypt.check_password_hash(pet_sitter.password, pet_sitter_fields["password"]):
-      return abort(401, description="Incorrect username and password")
+    return abort(401, description="Incorrect username and password")
   #create a variable that sets an expiry date
   expiry = timedelta(days=1)
   #create the access token
@@ -620,25 +620,47 @@ def get_all_pets_detail():
   return jsonify(result)
 
 
-@app.route("/customer/<int:customer_id>/pet", methods=["GET"])
+@app.route("/customer/<int:customer_id>/pets", methods=["GET"])
 @jwt_required()
 def get_pet_detail(customer_id):
   customer_jwt = get_jwt_identity()
   customer_stmt = db.select(Customer).filter_by(id=customer_id)
   customer = db.session.scalar(customer_stmt)
   if customer:
-    # if str(customer.id) == get_jwt_identity() or str(pet_sitter.id) == get_jwt_identity():
     if str(customer.id) == get_jwt_identity():
-      pets_list = Pet.query.all()
-      pets = pets_schema.dump(pets_list)
+      stmt = db.select(Pet).filter_by(customer_id=customer_id)
+      pets = db.session.scalars(stmt)
       if pets:
-        return jsonify(pets)
+        return pets_schema.dump(pets)
       else:
         return {'error': f'Customer does not have pets registered'}, 404
     else:
       return {'error': 'Not authorised to see information'}, 403
   else: 
     return {'error': f'Customer with id {customer_id} not found'}, 404
+
+@app.route("/customer/<int:customer_id>/pet", methods=["POST"])
+#Decorator to make sure the jwt is included in the request
+@jwt_required()
+def pet_details(customer_id):
+  customer_fields = customer_schema.load(request.json)
+  #get the customer id invoking get_jwt_identity
+  customer_id = get_jwt_identity()
+  if not customer_id:
+    return { 'error': 'Not authorised to update customer account'}
+  #create new pet details
+  pet_fields = pet_schema.load(request.json)
+  new_pet = Pet()
+  new_pet.name = pet_fields["name"]
+  new_pet.drop_off_date = pet_fields["drop_off_date"]
+  new_pet.pick_up_date = pet_fields["pick_up_date"]
+  new_pet.customer_id = pet_fields["customer_id"]
+  new_pet.pet_sitter_id = pet_fields["pet_sitter_id"]
+  # add to the database and commit
+  db.session.add(new_pet)
+  db.session.commit()
+  #return the card in the response
+  return jsonify(customer_schema.dump(new_pet))
 
 # @app.route('/customer/<int:id>/pet/', methods=['DELETE'])
 # @jwt_required()
@@ -683,21 +705,3 @@ def get_pet_detail(customer_id):
 #     db.session.commit()
 #     #return the card in the response
 #     return jsonify(card_schema.dump(card))
-
-
-# @app.route("/customer/", methods=["POST"])
-# #Decorator to make sure the jwt is included in the request
-# @jwt_required()
-# def customer_details():
-#   #create new customer details
-#   customer_fields = customer_schema.load(request.json)
-#   new_customer = Customer()
-#   new_customer.first_name = customer_fields["first_name"]
-#   new_customer.last_name = customer_fields["last_name"]
-#   new_customer.email = customer_fields["email"]
-#   new_customer.password = customer_fields["password"]
-#   # add to the database and commit
-#   db.session.add(new_customer)
-#   db.session.commit()
-#   #return the card in the response
-#   return jsonify(customer_schema.dump(new_customer))

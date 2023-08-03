@@ -74,7 +74,7 @@ def seed_db():
   )
   db.session.add(pet_sitter3)
 
-  # This extra commit will end the transaction and generate the ids for the user
+  # This extra commit will end the transaction and generate the ids for the staff and admin
   db.session.commit()
 
   customer1 = Customer(
@@ -132,7 +132,6 @@ def seed_db():
   # )
 
   # db.session.add(pet_description_2)
-
 
   message1 = Message(
     date = date.today(),
@@ -520,21 +519,29 @@ def create_message_to_customer(customer_id):
   else:
     return {'error': f'Invalid staff with id {pet_sitter_id}, unable to create a message'}, 401
 
+# Working!!
+@app.route('/customer/<int:customer_id>/message/<int:message_id>', methods=['DELETE'])
+@jwt_required()
+@authorise_as_admin
+def delete_customer_message(customer_id, message_id):
+    admin = authorise_as_admin
+    if admin:        
+      customer_stmt = db.select(Customer).filter_by(id=customer_id)
+      customer = db.session.scalar(customer_stmt)
+      if customer:
+        stmt = db.select(Message).filter_by(id=message_id)
+        message = db.session.scalar(stmt)
+        if message:
+            db.session.delete(message)
+            db.session.commit()
+            return {'message': f'Message with id number {message_id} deleted successfully'}
+        else: 
+            return {'error': f'Message not found with id {message_id}'}, 404
+      else:
+          return {'error': f'Customer not found with id {customer_id}'}, 404
+    else:
+      return {'error': 'Not authorised to delete messages'}, 403
 
-  # body_data = pet_schema.load(request.json)
-  # pet = Pet(
-  #   name = body_data.get('name'),
-  #   drop_off_date = body_data.get('drop_off_date'),
-  #   pick_up_date = body_data.get('pick_up_date'),
-  #   customer_id = body_data.get('customer_id'),
-  #   pet_sitter_id = body_data.get('pet_sitter_id'),
-  # )
-  # # add to the database and commit
-  # db.session.add(pet)
-  # #commit
-  # db.session.commit()
-  # #return the card in the response
-  # return pet_schema.dump(pet), 201
 
 # OK!
 @app.route("/customer", methods=["GET"])

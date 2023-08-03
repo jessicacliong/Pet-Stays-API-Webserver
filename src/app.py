@@ -437,24 +437,24 @@ def authorise_as_admin(fn):
     def wrapper(*args, **kwargs):
       pet_sitter_id = get_jwt_identity()
       stmt_1 = db.select(PetSitter).filter_by(id=pet_sitter_id)
-      pet_sitter_stmt = db.session.scalar(stmt)
+      pet_sitter_stmt = db.session.scalar(stmt_1)
       if pet_sitter_stmt.admin:
         return fn(*args, **kwargs)
       else:
           return {'error': 'Only admins are authorised to perform this action'}, 403
     return wrapper
 
-def authorise_staff(fn):
-  @functools.wraps(fn)
-  def wrapper(*args, **kwargs):
-    pet_sitter_id = get_jwt_identity()
-    stmt_2 = db.select(PetSitter).filter_by(id=pet_sitter_id)
-    pet_sitter_2 = db.session.scalar(stmt_2)
-    if pet_sitter_2:
-      return fn(*args, **kwargs)
-    else:
-        return {'error': 'Only staff are authorised to perform this action'}, 403
-  return wrapper
+# def authorise_staff(fn):
+#   @functools.wraps(fn)
+#   def wrapper(*args, **kwargs):
+#     pet_sitter_id = get_jwt_identity()
+#     stmt_2 = db.select(PetSitter).filter_by(id=pet_sitter_id)
+#     pet_sitter_2 = db.session.scalar(stmt_2)
+#     if pet_sitter_2:
+#       return fn(*args, **kwargs)
+#     else:
+#         return {'error': 'Only staff are authorised to perform this action'}, 403
+#   return wrapper
 
 # Messages Routes
 
@@ -470,11 +470,11 @@ def get_all_customer_messages():
   return jsonify(result)
 
 #Works!
-@app.route("/customer/<int:id>/messages", methods=["GET"])
+@app.route("/customer/<int:customer_id>/messages", methods=["GET"])
 @jwt_required()
-def get_one_customers_messages(id):
+def get_one_customers_messages(customer_idid):
   customer_id = get_jwt_identity()
-  stmt = db.select(Customer).filter_by(id=id)
+  stmt = db.select(Customer).filter_by(id=customer_id)
   customer = db.session.scalar(stmt)
   if str(customer.id) == get_jwt_identity(): # the user who sent the request / they are trying to edit
     # get all the messages from the database table
@@ -485,35 +485,33 @@ def get_one_customers_messages(id):
   else:
     return {'error': f'Messages not found for customer id {id}'}, 404
 
-
-@app.route('/customer/<int:id>/message', methods=['POST'])
+OK!
+@app.route('/customer/<int:customer_id>/message', methods=['POST'])
 @jwt_required()
-def create_message_to_customer(id):
+def create_message_to_customer(customer_id):
     #get the user id invoking get_jwt_identity
     pet_sitter_id = get_jwt_identity()
     #Find it in the db
-    pet_sitter = Customer.query.get(pet_sitter_id)
+    pet_sitter = PetSitter.query.get(pet_sitter_id)
     #Make sure it is in the database
     if not pet_sitter:
-        return abort(401, description="Invalid user")
+        return {'error': f'Invalid user, unable to create a message'}, 401
     #create the message with the given values
-    body_data = card_schema.load(request.get_json())
+    body_data = message_schema.load(request.get_json())
     # create a new Card model instance
     message = Message(
       date = date.today(),
       title = body_data.get('title'),
       content = body_data.get('content'),
-      pet_sitter_id=get_jwt_identity(),
-      pet_id=body_data.get('pet_id')
+      customer_id= customer_id,
+      pet_sitter_id= get_jwt_identity()
     )
     # Add that card to the session
     db.session.add(message)
     # Commit
     db.session.commit()
     # Respond to the client
-    return card_schema.dump(card), 201
-
-# customer id & pet_sitter id
+    return message_schema.dump(message), 201
 
 # OK!
 @app.route("/customer", methods=["GET"])
@@ -530,10 +528,8 @@ def get_all_customers():
   # return the data in JSON format
   return jsonify(result)
 
-#(Working, authorisation not done properly)
 @app.route('/customer/<int:customer_id>', methods=['GET'])
 @jwt_required()
-# @authorise_staff
 def get_one_customer_detail(customer_id):
   customer_jwt = get_jwt_identity()
   customer_stmt = db.select(Customer).filter_by(id=customer_id)
@@ -560,7 +556,6 @@ def get_one_customer_detail(customer_id):
 #   # pet_sitter = db.session.scalar(pet_sitter_stmt)
 #   # if customer:
 #     # if str(customer.id) == get_jwt_identity() or str(pet_sitter.id) == get_jwt_identity():
-
 #   customer_jwt = get_jwt_identity()
 #   customer_stmt = db.select(Customer).filter_by(id=customer_id)
 #   customer = db.session.scalar(customer_stmt)
@@ -619,7 +614,6 @@ def get_all_pets_detail():
   # return the data in JSON format
   return jsonify(result)
 
-
 @app.route("/customer/<int:customer_id>/pets", methods=["GET"])
 @jwt_required()
 def get_pet_detail(customer_id):
@@ -639,69 +633,44 @@ def get_pet_detail(customer_id):
   else: 
     return {'error': f'Customer with id {customer_id} not found'}, 404
 
+# (working)
 @app.route("/customer/<int:customer_id>/pet", methods=["POST"])
 #Decorator to make sure the jwt is included in the request
 @jwt_required()
 def pet_details(customer_id):
-  customer_fields = customer_schema.load(request.json)
-  #get the customer id invoking get_jwt_identity
-  customer_id = get_jwt_identity()
-  if not customer_id:
-    return { 'error': 'Not authorised to update customer account'}
   #create new pet details
-  pet_fields = pet_schema.load(request.json)
-  new_pet = Pet()
-  new_pet.name = pet_fields["name"]
-  new_pet.drop_off_date = pet_fields["drop_off_date"]
-  new_pet.pick_up_date = pet_fields["pick_up_date"]
-  new_pet.customer_id = pet_fields["customer_id"]
-  new_pet.pet_sitter_id = pet_fields["pet_sitter_id"]
+  body_data = pet_schema.load(request.json)
+  pet = Pet(
+    name = body_data.get('name'),
+    drop_off_date = body_data.get('drop_off_date'),
+    pick_up_date = body_data.get('pick_up_date'),
+    customer_id = body_data.get('customer_id'),
+    pet_sitter_id = body_data.get('pet_sitter_id'),
+  )
   # add to the database and commit
-  db.session.add(new_pet)
+  db.session.add(pet)
+  #commit
   db.session.commit()
   #return the card in the response
-  return jsonify(customer_schema.dump(new_pet))
+  return pet_schema.dump(pet), 201
 
-# @app.route('/customer/<int:id>/pet/', methods=['DELETE'])
-# @jwt_required()
-# def delete_one_pet():
-#     is_admin = authorise_as_admin
-#     if not is_admin:
-#         return {'error': 'Not authorised to delete pet information'}, 403
-#     stmt = db.select(customer).filter_by(id=id)
-#     customer = db.session.scalar(stmt)
-#     if customer:
-#       stmt = db.select(pet).filter_by(id=id)
-#       pet = db.session.scalar(stmt)
-#     else:
-#       return {'error': f'Customer not found with id {id}'}, 404
-#     if pet:
-#         db.session.delete(pet)
-#         db.session.commit()
-#         return {'message': f'Pet {pet.name} deleted successfully'}
-
-# #add the id to let the server know the card we want to delete
-# @app.route("/customer/<int:id>", methods=["DELETE"])
-# @jwt_required()
-# #Includes the id parameter
-# def customer_delete(id):
-#     #get the user id invoking get_jwt_identity
-#     customer_id = get_jwt_identity()
-#     #Find it in the db
-#     customer = Customer.query.get(customer_id)
-#     #Make sure it is in the database
-#     if not customer:
-#         return abort(401, description="Invalid user")
-#     # Stop the request if the user is not an admin
-#     if not admin_pet_sitter:
-#         return abort(401, description="Unauthorised user")
-#     # find the card
-#     card = Card.query.filter_by(id=id).first()
-#     #return an error if the card doesn't exist
-#     if not Card:
-#         return abort(400, description= "Card doesn't exist")
-#     #Delete the card from the database and commit
-#     db.session.delete(card)
-#     db.session.commit()
-#     #return the card in the response
-#     return jsonify(card_schema.dump(card))
+@app.route('/customer/<int:customer_id>/pet/<int:pet_id>', methods=['DELETE'])
+@jwt_required()
+@authorise_as_admin
+def delete_one_pet(customer_id, pet_id):
+    is_admin = authorise_as_admin
+    if not is_admin:
+        return {'error': 'Not authorised to delete pet information'}, 403
+    customer_stmt = db.select(Customer).filter_by(id=customer_id)
+    customer = db.session.scalar(customer_stmt)
+    if customer:
+      pet_stmt = db.select(Pet).filter_by(id=pet_id)
+      pet = db.session.scalar(pet_stmt)
+    else:
+      return {'error': f'Customer not found with id {id}'}, 404
+    if pet:
+      db.session.delete(pet)
+      db.session.commit()
+      return {'message': f'Pet {pet.name} deleted successfully'}
+    else:
+      return {'error': f'Pet not found with id {id}'}, 404

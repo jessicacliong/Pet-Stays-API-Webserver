@@ -460,7 +460,11 @@ def authorise_as_admin(fn):
 # OK, no authorisation 
 @app.route("/customer/messages", methods=["GET"])
 @jwt_required()
+@authorise_as_admin
 def get_all_customer_messages():
+  admin = authorise_as_admin
+  if not admin:
+    return {'error': 'Not authorised to see customer information'}, 403
   # get all the messages from the database table
   messages_list = Message.query.all()
   # Convert the messages from the database into a JSON format and store them in result

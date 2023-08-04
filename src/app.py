@@ -51,7 +51,6 @@ def seed_db():
     last_name="Daniels",
     email = "admin@petstays.com",
     password = bcrypt.generate_password_hash("password123").decode("utf-8"),
-    staff = True,
     admin = True
   )
   db.session.add(pet_sitter1)
@@ -61,7 +60,8 @@ def seed_db():
     last_name="Lee",
     email = "kathylee@petstays.com",
     password = bcrypt.generate_password_hash("123456").decode("utf-8"),
-    staff = True
+    staff = True,
+
    )
   db.session.add(pet_sitter2)
 
@@ -189,9 +189,9 @@ class Pet(db.Model):
   # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
-  name = db.Column(db.String())
-  drop_off_date = db.Column(db.String())
-  pick_up_date = db.Column(db.String())
+  name = db.Column(db.String(), nullable=False)
+  drop_off_date = db.Column(db.String(), nullable=False)
+  pick_up_date = db.Column(db.String(), nullable=False)
    # two foreign keys
   customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
   pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
@@ -238,9 +238,9 @@ class Message(db.Model):
   # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
-  date = db.Column(db.Date())
-  title = db.Column(db.String())
-  content = db.Column(db.String())
+  date = db.Column(db.Date(), nullable=False)
+  title = db.Column(db.String(), nullable=False)
+  content = db.Column(db.String(), nullable=False)
   # # two foreign keys
   customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"),nullable=False)
   pet_sitter_id = db.Column(db.Integer, db.ForeignKey("pet_sitter.id"),nullable=False)
@@ -265,11 +265,11 @@ class PetSitter(db.Model):
   # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
-  first_name = db.Column(db.String())
-  last_name = db.Column(db.String())
-  email = db.Column(db.String())
-  password = db.Column(db.String())
-  staff = db.Column(db.Boolean(), nullable=False)
+  first_name = db.Column(db.String(), nullable=False)
+  last_name = db.Column(db.String(), nullable=False)
+  email = db.Column(db.String(), nullable=False, unique=True)
+  password = db.Column(db.String(), nullable=False)
+  staff = db.Column(db.Boolean(), nullable=False, default=True)
   admin = db.Column(db.Boolean(), default=False)
   pet_id = db.relationship(
       "Pet",
@@ -304,10 +304,10 @@ class Customer(db.Model):
   # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
-  first_name = db.Column(db.String())
-  last_name = db.Column(db.String())
-  email = db.Column(db.String())
-  password = db.Column(db.String())
+  first_name = db.Column(db.String(), nullable=False)
+  last_name = db.Column(db.String(), nullable=False)
+  email = db.Column(db.String(), nullable=False, unique=True)
+  password = db.Column(db.String(), nullable=False)
   pet_id = db.relationship(
     "Pet",
     backref="customer",
@@ -385,6 +385,7 @@ def auth_login_staff():
 
 #Customer routes
 
+# (Working!!)
 @app.route("/auth/customer/register", methods=["POST"])
 def auth_register_customer():
   #The request data will be loaded in a customer_schema converted to JSON
@@ -415,6 +416,7 @@ def auth_register_customer():
     #Return the user to check the request was successful
     return jsonify(customer_schema.dump(customer))
 
+# (Working)
 @app.route("/auth/customer/login", methods=["POST"])
 def auth_login():
   #get the user data from the request
@@ -431,13 +433,14 @@ def auth_login():
   # return the user email and the access token
   return jsonify({"customer":customer.email, "token": access_token })
 
+# (Works)
 def authorise_as_admin(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
       pet_sitter_id = get_jwt_identity()
-      stmt_1 = db.select(PetSitter).filter_by(id=pet_sitter_id)
-      pet_sitter_stmt = db.session.scalar(stmt_1)
-      if pet_sitter_stmt.admin:
+      stmt = db.select(PetSitter).filter_by(id=pet_sitter_id)
+      pet_sitter = db.session.scalar(stmt)
+      if pet_sitter.admin is True:
         return fn(*args, **kwargs)
       else:
           return {'error': 'Only admins are authorised to perform this action'}, 403
@@ -457,14 +460,10 @@ def authorise_as_admin(fn):
 
 # Messages Routes
 
-# OK, no authorisation 
+# OK!!
 @app.route("/customer/messages", methods=["GET"])
 @jwt_required()
-@authorise_as_admin
 def get_all_customer_messages():
-  admin = authorise_as_admin
-  if not admin:
-    return {'error': 'Not authorised to see customer information'}, 403
   # get all the messages from the database table
   messages_list = Message.query.all()
   # Convert the messages from the database into a JSON format and store them in result
@@ -472,7 +471,7 @@ def get_all_customer_messages():
   # return the data in JSON format
   return jsonify(result)
 
-#Works!
+#(Works!)
 @app.route("/customer/<int:customer_id>/messages", methods=["GET"])
 @jwt_required()
 def get_one_customers_messages(customer_id):
@@ -481,14 +480,14 @@ def get_one_customers_messages(customer_id):
   customer = db.session.scalar(stmt)
   if str(customer.id) == get_jwt_identity(): # the user who sent the request / they are trying to edit
     # get all the messages from the database table
-    messages = Message.query.filter_by(customer_id=id)
+    messages = Message.query.filter_by(customer_id=customer_id)
     # return the data in JSON format
     result = messages_schema.dump(messages)
     return jsonify(result)
   else:
-    return {'error': f'Messages not found for customer id {id}'}, 404
+    return {'error': f'Messages not found for customer id {customer_id}'}, 404
 
-# Works with error handling
+# Works with error handling!!
 @app.route('/customer/<int:customer_id>/message', methods=['POST'])
 @jwt_required()
 def create_message_to_customer(customer_id):
@@ -547,14 +546,10 @@ def delete_customer_message(customer_id, message_id):
       return {'error': 'Not authorised to delete messages'}, 403
 
 
-# OK!
+# OK! Admin and id 1 customer can access DX 
 @app.route("/customer", methods=["GET"])
 @jwt_required()
-@authorise_as_admin
 def get_all_customers():
-  admin = authorise_as_admin
-  if not admin:
-    return {'error': 'Not authorised to see customer information'}, 403
   # get all the customer details from the database table
   customers_list = Customer.query.all()
   # Convert the customers from the database into a JSON format and store them in result
@@ -562,6 +557,7 @@ def get_all_customers():
   # return the data in JSON format
   return jsonify(result)
 
+# (Working!, same here DX)
 @app.route('/customer/<int:customer_id>', methods=['GET'])
 @jwt_required()
 def get_one_customer_detail(customer_id):
@@ -572,9 +568,9 @@ def get_one_customer_detail(customer_id):
     if str(customer.id) == get_jwt_identity():
         return customer_schema.dump(customer)
     else:
-      return {'error': 'Not authorised to see information'}, 403
+      return {'error': f'Not authorised to see customer {customer_id}\'s information'}, 403
   else: 
-    return {'error': f'Customer with id {customer_id} not found or staff with id not found'}, 404
+    return {'error': f'Customer with id {customer_id} cannot be found'}, 404
 
 #For further iteration to allow only staff and customers to access customer information
 # #(Working, authorisation not done properly)
@@ -603,23 +599,26 @@ def get_one_customer_detail(customer_id):
 #     return {'error': f'Customer with id {customer_id} not found or staff with id not found'}, 404
 
 #(working!! Authorisation also works)
-@app.route("/customer/<int:id>", methods=["PUT", "PATCH"])
+@app.route("/customer/<int:customer_id>", methods=["PUT", "PATCH"])
 @jwt_required()
-def update_customer():
-  customer_fields = customer_schema.load(request.json)
-  #get the customer id invoking get_jwt_identity
-  customer_id = get_jwt_identity()
-  if not customer_id:
-    return { 'error': 'Not authorised to update customer account'}
+def update_customer(customer_id):
+  customer_jwt = get_jwt_identity()
   #Find it in the db
-  customer = Customer.query.get(customer_id)
-  #update the customer details with the given values
-  customer.first_name = customer_fields['first_name']
-  customer.last_name = customer_fields["last_name"]
-  customer.email = customer_fields["email"]
-  customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
-  db.session.commit()
-  return jsonify(customer_schema.dump(customer))
+  customer_stmt = db.select(Customer).filter_by(id=customer_id)
+  customer = db.session.scalar(customer_stmt)
+  if customer:
+    if str(customer.id) == get_jwt_identity():
+      #update the customer details with the given values
+      customer.first_name = customer_fields['first_name']
+      customer.last_name = customer_fields["last_name"]
+      customer.email = customer_fields["email"]
+      customer.password = bcrypt.generate_password_hash(customer_fields["password"]).decode("utf-8")
+      db.session.commit()
+      return jsonify(customer_schema.dump(customer))
+    else:
+      return { 'error': f'Not authorised to update customer id {customer_id}\'s information.'}
+  else:
+    return { 'error': f'Customer with id {customer_id} cannot be found.'}
 
 #(Working!!!)
 @app.route('/customer/<int:customer_id>', methods=['DELETE'])
@@ -627,20 +626,21 @@ def update_customer():
 @authorise_as_admin
 def delete_one_customer(customer_id):
     admin = authorise_as_admin
-    if not admin:
-        return {'error': 'Not authorised to delete customer accounts'}, 403
-    stmt = db.select(Customer).filter_by(id=id)
+    stmt = db.select(Customer).filter_by(id=customer_id)
     customer = db.session.scalar(stmt)
     if customer:
         db.session.delete(customer)
         db.session.commit()
         return {'message': f'Customer {customer.first_name} {customer.last_name} deleted successfully'}
     else:
-        return {'error': f'Customer not found with id {id}'}, 404
+        return {'error': f'Customer not found with id {customer_id}'}, 404
 
+# Working
 @app.route("/pets", methods=["GET"])
 @jwt_required()
+@authorise_as_admin
 def get_all_pets_detail():
+  admin = authorise_as_admin
 # get all the messages from the database table
   pets_list = Pet.query.all()
   # Convert the messages from the database into a JSON format and store them in result
@@ -648,6 +648,7 @@ def get_all_pets_detail():
   # return the data in JSON format
   return jsonify(result)
 
+# Working with customer authorisation
 @app.route("/customer/<int:customer_id>/pets", methods=["GET"])
 @jwt_required()
 def get_pet_detail(customer_id):

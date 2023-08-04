@@ -29,10 +29,9 @@
 ## R1 and R2 Problem Identification and Justification
 
 The problem being solved by this application is the need for a secure method pet owners can create personal accounts with a pet sitter company to store personal information about customers and their pets respectively.
-This serves as a secure communication platform for pet sitters to inform customers regarding their loved ones while being away from them, organise drop offs and pick ups with the pet sitters in a secure manner segragating and organising communications from the normal messaging applications they may already utilise. An account system serves to separate pet matters from personal ones as pet sitters can also access personal information about the pets in order to provide better personalised care for each of the pet's individual needs.
-This application also serves as a location to directly update contact details for the customer's conveniences.
+This serves as a secure communication platform for pet sitters to inform customers regarding their loved ones while being away from them, organise drop offs and pick ups with the pet sitters, segragating and organising communications from the normal messaging applications they may already utilise. An account system serves to separate pet matters from personal ones as pet sitters serves as a location to directly update contact details for the customer's conveniences.
 
-Future iterations of this application will allow customers to send messages to pet sitters and enable the communication services to be a two-way direction service instead of just a one-way service. 
+Future iterations of this application will allow customers to send messages to pet sitters and enable the communication services to be a two-way direction service instead of just a one-way service. Staff can also access personal information about the pets in order to provide better personalised care for each of the pet's individual needs.
 
 ## R3 Justification of the Database System
 
@@ -49,10 +48,35 @@ Another drawback to RDBMS is the objects in the programming language must be con
 
 Alternatives such as NoSQL offer better at scalling horizontally and partition tolerances, however at the cost of consistency and referential integrity of tables, which are crucial for this application (Hero Data Inc, 2022). Hence, PostgreSQL is still the most appropriate management system to use for this application.
 
-The advantages and disadvantages of RDBMS are summarised below:
+__Advantages of RDBMS__
 
+- Widely implemented and proven working database management system
 
+- Compared to other non-relational databases is more structured
 
+- Easy to use
+
+- Users can readily retrieve information using SQL queries, which are more efficient in relational databases compared to other systems. In contrast to NoSQL databases, which are alternatives to relational databases, often lack support for complex joins, sub-queries, and nesting of queries within WHERE clauses.
+
+- Data duplication is avoided, eliminating the problem of former versions confusion in coding practice.
+
+- Entity integrity is maintained by ensuring that each row in the database possesses a unique attribute, known as a primary key. This ensures that each row represents a distinct instance of the entity, preventing data duplication and anomalies.
+
+- Referential integrity is ensured using foreign keys, which prevents insert anomalies by accepting only values that exist in related tables. To avoid update or delete anomalies, rows containing a primary key used as a foreign key in another table cannot be deleted by default.
+
+- The database is ACID (Atomicity, Consistency, Isolation, Durability) compliant, ensuring efficient and reliable transactions, making it an excellent choice for online transaction processing.
+
+- Domain integrity is easily achieved in a relational database by defining the acceptable data type for each column and applying data validation rules and constraints. Normalization also contributes to achieving domain integrity by enforcing uniqueness, consistent data types, non-transitive dependency on the primary key, and atomicity for each attribute.
+
+__Disadvantages of RDBMS__
+
+- Relational databases like SQL have a more rigid and predefined structure, which limits their flexibility compared to non-relational databases like NoSQL. NoSQL stores data in unstructured or semi-structured formats, often using key-value pairs or JSON documents. This flexibility makes NoSQL a better fit for data with frequently changing structures and more adaptable to changes. NoSQL databases also excel in high-volume services, offering sub-second response times.
+
+- When using relational databases, objects in programming languages like Python need to be converted to and from the database storage format. In contrast, many non-relational databases, such as MongoDB, allow direct mapping of documents to data structures in popular programming languages, eliminating the need for conversion.
+
+- The use of tables with rows and columns in a relational database consumes a considerable amount of physical memory.
+
+- Compared to NoSQL databases, relational databases offer less partition tolerance. RDMS typically scale vertically by adding more resources to a single server, while NoSQL databases scale horizontally, allowing the addition of more servers or nodes as needed to handle increased loads. Horizontal scaling in NoSQL is faster and more cost-effective than vertical scaling. Additionally, NoSQL databases can partition and replicate data across different machines or nodes, providing redundancy and fault tolerance.
 
 __PostgreSQL Database Management__
 
@@ -69,6 +93,7 @@ Although PostgreSQL's speed and performance might not match up to competitors li
 While PostgreSQL's documentation is mainly available in English, it should not significantly impact this application's staff and customers.
 
 The installation and configuration processes may be slightly more complex compared to MySQL and other systems. However, these processes are well-documented and solveable in a short term (Ionos, 2022) (Peterson, 2022).
+
 
 __Advantages__
 
@@ -113,12 +138,103 @@ __Disadvantages__
 
 ## R4 Functionalities and Benefits of an ORM
 
+An Object Relational Mapper (ORM) acts as an intermediary between object-oriented programming (OOP) and relational databases, eliminating the need to directly write SQL queries. SQL is the standard language for working with databases, and an ORM simplifies the conversion of data between the program's storage format (e.g., Python objects) and the relational structure of the database (tables with rows and columns). As a result, developers can interact with the database using their preferred programming language instead of dealing with SQL directly.
 
+In this particular application, SQLAlchemy serves as the chosen ORM, a widely respected database toolkit and ORM designed for Python. SQLAlchemy provides a flexible interface for creating and executing database-agnostic code, freeing developers from relying solely on SQL statements.
 
-The benefits of an ORM are 
+ORMs generate virtual objects that mirror the database tables, and in this application, a model has been established for each entity in the database, providing an abstract representation of the corresponding table. Each class attribute in the model corresponds to a field (column) in the table. Additionally, ORMs monitor object changes and synchronize these modifications back to the database by generating SQL code for database operations like insert, update, create, and delete, based on the application's interactions with the model (Liang, 2021).
+
+The primary advantage of using an ORM is that developers can create database queries using Python code by invoking methods on a class, which the ORM then translates to SQL and executes, offering protection against potential malicious data (Liang, 2021).
+
+Another notable feature of SQLAlchemy is its ability to map relationships between classes to relationships between database tables using foreign key constructs. The ORM supports four types of relationships: One To Many, Many To One, One To One, and Many To Many. Furthermore, ORM allows the definition of cascade behavior when establishing relationships, allowing operations on parent objects to also affect child objects, depending on the chosen behavior.
+
+Sessions play a crucial role in SQLAlchemy as well, ensuring consistency by acting as a "holding zone" for all interactions with the database. Any ORM objects affected by a transaction are kept inside the session and will be committed to the underlying database together or not at all.
+
+Although ORMs abstract much of the complexity of database interactions, understanding SQL remains important, as certain situations may require direct SQL querying for development, debugging, or performance optimization. In some cases, complex queries may not be efficiently handled by ORMs and may necessitate the use of embedded SQL.
+
+Alternatively, developers have the option of writing raw SQL code to directly interface with the database, offering more fine-grained control and flexibility, but this approach demands in-depth database knowledge and SQL coding skills. However, this manual approach is more time-consuming and lacks many of the advantages provided by an ORM.
+
+The benefits of using an ORM include improved security through data sanitization, enhancing data integrity and guarding against SQL injection attacks. ORMs also result in cleaner and less code compared to embedded SQL, leading to faster development and reduced costs. They facilitate tracking database changes, making debugging and future application modifications more straightforward. Additionally, ORMs offer high-level implementations with excellent support for various tasks, such as transactions, connections, migrations, and more.
+
+In terms of maintainability and code reuse, ORMs encourage developers to think in terms of objects, promoting well-organized and manageable code instead of fragmented data pieces. Furthermore, ORMs abstract the database system, making it easier to switch to a different database platform, which can be advantageous for on-premises solutions or if the API is to be used with various databases (Abba, 2022) (Hoyos, 2018) (Liang, 2021).
 
 
 ## R5 API Endpoints
+
+1. Staff Registration - POST Request
+This route is to register new staff members into the system. 
+The route requires a first name, last name, email, password, admin and staff information of the new staff member. Admin and staff information required to be given as either True or False to determine whether they are admins or not and to differentiate between customers, admins and staff members.
+![Registration - Staff](docs/Registration_staff_post_route.png)
+
+2. Customer Registration - POST Request
+This route allows customers to register into their new accounts. 
+It also requires a first name, last name, email and password information to store information of new customers.
+![Registration - Customer](/docs/Registration_new_customer_post_route.png)
+
+3. Staff Login - POST Request
+With provided information upon registration, staff can provide email and password previously noted to login into their accounts.
+![Login - Staff](docs/Login_staff_post_route.png)
+
+4. Admin Login - POST Request
+With provided information upon registration, staff can provide email and password previously noted to login into their accounts.
+![Login - Admin](docs/Login_admin_post_route.png)
+
+5. Customer Login - POST Request
+With the provided information upon registration, customers can enter in email and password credentials to log into their accounts. 
+![Login - Customer](docs/Login_customer_post_route.png)
+
+6. List all customer accounts in system - GET Request
+![GET Request - All Customers](docs/get_all_customer.png)
+This get request requires admin jwt_token to obtain all customer information. 
+If a staff / customer token is provided, it will throw an error like the following:
+![GET Request - All Customers(error)](docs/get-all_customer_information%20routes.png)
+
+7. Show individual customer information - GET Request
+This route allows customers to view their account information and is unique to corresponding customers and all staff access. Hence, only the jwt_token of the customer with corresponding customer id and staff will be able to access this information.
+![GET Request - Individual Customers](docs/GET_ind_customers.png).
+
+8. Update customer information - Put/Patch Request
+This route allows customers to edit and update their information and is unique to corresponding customers and all staff access. Hence, only the jwt_token of the customer with corresponding customer id and staff will be able to access this information. Information needed to be updated can vary from first name, last name, email and password. To update the information, the correct corresponding customer id number needs to be provided in the url. 
+![PUt/PATCH Request - Individual Customers](docs/Update_customer_put:patch%20route.png)
+
+9. Delete customer information - DEL Request
+This route only allows admins to delete customer accounts and only their jwt_token can procede to the deletion of accounts. 
+The information required to be given is the customer id number in the url. ![DEL Request - Customers](/docs/Delete_customer_routes.png.png)
+Error handling for the following routes are as follows:
+![Del Request Customers - Error handling](docs/Delete_customer_id.png)
+
+10. Create Pet Information - POST Request
+This route allows customers to create pet information and see them listed in their account. The information required is the name, drop_off_time, pick_up_date and the corresponding customer_id and pet_sitter_id who has created the information. It also requires the jwt_token of the customer in order for the action to be executed.
+![Get Request Pet Information](docs/POST-create_new_pet_information.png)
+
+11. View All Customer Pet Information - GET Request
+Only admins are allowed to view all registered pets on the system. The requirement to perform this request is the jwt_token from admin. 
+![Get Request All Pet Information](docs/GET_all_pet_information.png)
+
+12. View Pet Information from 1 customer - GET Request
+Only customers who have registered their pets under their account are able to view their pet's information. The required parameters for this request is their jwt_token. The id on the dynamic router must also be adjusted to match the id number of the customer to gain access to the information. 
+![Get Request Pet Information For Given Customer](docs/Get_pet_information_per_customer.png)
+
+13. Delete Pet Information - DEL Request
+Only admins are allowed to delete the pet information registered on a customer account, so their jwt_token is required for the request to proceed along with the matching customer id number and pet id number to be deleted.
+![Delete Pet Information](docs/DEL_pet_information.png)
+
+14. Create Message to Customer - POST Request
+This route allows staff to create messages to customers informing them about the pick up and drop off information of pets. The information required is the title, date, content, customer_id and pet_sitter_id this message relates to. 
+![Create Messages](docs/POST_new_message.png)
+
+15. Get All Messages - GET Request
+This route allows for staff and admin to retrieve all messages sent to customers. The information required is their jwt token to authorise this request.
+![Get All Messages](docs/GET_all_messages.png)
+
+16. Get Specific Customer Messages - GET Request
+This route allows customers to see specific messages sent by pet sitters using their own jwt token. 
+![Get Messages Matching Customer ID](docs/GET_indv_customer_messages.png)
+
+17. Delete Customer Messages - DEL Request
+This route allows admins to delete messages. The admin's jwt token is required and the corresponding customer id along with the message id needs to match the message to be deleted in order for a successful operation.
+![Delete Messages Matching Customer and Message ID](docs/DEL_message_id_customer_id.png)
+
 
 ## R7 Third Party Services
 
@@ -143,11 +259,7 @@ The ".flaskenv" file contains essential details for project execution, such as t
 
 __Flask-Bcrypt__
 
-Flask bcrypt is a Flask extension utilized to safeguard passwords through bcrypt hashing, which relies on the Blowfish cipher. This process involves converting a variable-length string of characters into a fixed-length value. The hashing function consistently generates the same output for a given input, and even a minor alteration in the input string will substantially alter the resulting hash. To further enhance security, the extension incorporates a "salt" to protect against potential rainbow table attacks. A rainbow table contains precomputed hash values that could be exploited to discover commonly used passwords (illustrated in figure 1 below). To counter this vulnerability, a random "salt" value is added to the original message before hashing it (Okta, 2022). Additionally, the bcrypt hashing functions can be intentionally slowed down to thwart brute force attacks.
-
-```
-password = bcrypt.generate_password_hash(request.json['password']).decode('utf8')
-```
+Flask bcrypt is a Flask extension utilized to safeguard passwords through bcrypt hashing, which relies on the Blowfish cipher. This process involves converting a string of varying lengths of characters into a fixed-length. The hashing function consistently generates the same output for a given input, and even a minor alteration in the input string will substantially alter the resulting hash. To further enhance security, the extension incorporates a "salt" code which protects account logins against potential rainbow table attacks. A rainbow table contains precomputed hash values that could be exploited to discover commonly used passwords (illustrated in figure 1 below). To counter this vulnerability in password creations, a random "salt" value is added to the original message before hashing it (Okta, 2022). Additionally, the bcrypt hashing functions can intentionally slow down brute force attacks.
 
 ![Rainbow Password Hash Table](docs/password-salted-rainbow.png)
 
@@ -160,7 +272,14 @@ Additionally, JWT helps eliminate the need for users to log in for each request.
 
 
 ## R8 Description of Models Relationship
+
+The Pet Sitter / staff model has a one to many relationship with the Pets model and the Message model. This is because one staff can take care of many pets and one pet has to be linked to one staff. 
+The same goes with messages which is related to the staff model in a one to many relationship. 
+
 ## R6 & R9 ERD & Database Relations Implementation
+
+
+
 ## R10 Project Planning and Tracking Tasks
 
 ### Creating a Trello Board
@@ -199,24 +318,26 @@ Atlassian. (n.d.). User stories in agile project management. Retrieved from http
 
 Andress, J. (2019). Foundations of Information Security: A Straightforward Introduction. San Fransisco : No Starch Press.
 
-Dolphin, R. (2022, Feb 23). SQL vs NoSQL | Comparing Relational and Non-Relational Database Management. Retrieved October 29, 2022, from Towards Data Science: https://towardsdatascience.com/comparing-relational-and-non-relational-database-management-systems-sql-vs-nosql-f4c8f5988365
+Dolphin, R. (2022, Feb 23). SQL vs NoSQL | Comparing Relational and Non-Relational Database Management. Retrieved 13 July 2023, from Towards Data Science: https://towardsdatascience.com/comparing-relational-and-non-relational-database-management-systems-sql-vs-nosql-f4c8f5988365
 
-Hevo Data Inc. (2022, May 6). Relational Database Vs NoSQL: 7 Critical Aspects. Retrieved October 29, 2022, from Hevo Data: https://hevodata.com/learn/relational-database-vs-nosql/
+Hevo Data Inc. (2022, May 6). Relational Database Vs NoSQL: 7 Critical Aspects. Retrieved 13 July 2023, from Hevo Data: https://hevodata.com/learn/relational-database-vs-nosql/
 
-Ionos. (2022, September 22). PostgreSQL: a closer look at the object-relational database management system. Retrieved October 12, 2022, from Ionos: https://www.ionos.com/digitalguide/server/know-how/postgresql/
+Ionos. (2022, September 22). PostgreSQL: a closer look at the object-relational database management system. Retrieved July 16, 2023, from Ionos: https://www.ionos.com/digitalguide/server/know-how/postgresql/
 
-Microsoft. (2022, July 4). Relational vs. NoSQL data. Retrieved October 29, 2022, from https://learn.microsoft.com/en-us/dotnet/architecture/cloud-native/relational-vs-nosql-data
+Liang, M. (2021, March 11). Understanding Object-Relational Mapping: Pros, Cons, and Types. Retrieved 29 July 2023, from Altexsoft: https://www.altexsoft.com/blog/object-relational-mapping/
 
-Okta. (2022). Introduction to JSON Web Tokens. Retrieved October 12, 2022, from https://jwt.io/
+Microsoft. (2022, July 4). Relational vs. NoSQL data. Retrieved 15 July 2023, from https://learn.microsoft.com/en-us/dotnet/architecture/cloud-native/relational-vs-nosql-data
 
-Pallets. (2010). Flask Web development one drop at a time. Retrieved October 20, 2022, from Flask’s Documentation: https://flask.palletsprojects.com/en/2.2.x/ Peterson, R. (2022, October 15). What is PostgreSQL? Introduction, Advantages & Disadvantages. Retrieved October 20, 2022, from Guru99: https://www.guru99.com/introduction-postgresql.html
+Okta. (2022). Introduction to JSON Web Tokens. Retrieved 16 July, 2023, from https://jwt.io/
 
-PostgreSQL Tutorial Website. (2022). Retrieved October 14, 2022, from What is PostgreSQL?: https://www.postgresqltutorial.com/postgresql-getting-started/what-is-postgresql/
+Pallets. (2010). Flask Web development one drop at a time. Retrieved 15 July, 2023, from Flask’s Documentation: https://flask.palletsprojects.com/en/2.2.x/ Peterson, R. (2022, October 15). What is PostgreSQL? Introduction, Advantages & Disadvantages. Retrieved October 20, 2022, from Guru99: https://www.guru99.com/introduction-postgresql.html
 
-Real Python. (2014). Model-View-Controller (MVC) Explained – With Legos. Retrieved October 20, 2022, from https://realpython.com/ the-model-view-controller-mvc-paradigm-summarized-with-legos/
+PostgreSQL Tutorial Website. (2022). Retrieved 18 July, 2023, from What is PostgreSQL?: https://www.postgresqltutorial.com/postgresql-getting-started/what-is-postgresql/
 
-Shields, W. (2019). SQL QuickStart Guide: The Simplified Beginner's Guide to Managing, Analyzing, and Manipulating Data With SQL. ClydeBank Media LLC. SQLAlchemy. (2022). SQLAlchemy 1.4 Documentation. Retrieved October 15, 2022, from https://docs.sqlalchemy.org/en/14/
+Real Python. (2014). Model-View-Controller (MVC) Explained – With Legos. Retrieved 18 July 2023, from https://realpython.com/ the-model-view-controller-mvc-paradigm-summarized-with-legos/
 
-StackOverflow. (2021, June). 2021 Developer Survey. Retrieved from Stack Overflow: https://insights.stackoverflow.com/survey/2021#most-popular-technologies-platform
+Shields, W. (2019). SQL QuickStart Guide: The Simplified Beginner's Guide to Managing, Analyzing, and Manipulating Data With SQL. ClydeBank Media LLC. SQLAlchemy. (2022). SQLAlchemy 1.4 Documentation. Retrieved 16 July 2022, from https://docs.sqlalchemy.org/en/14/
+
+StackOverflow. (2021, June). 2021 Developer Survey. Retrieved  on 14 July 2023 Stack Overflow: https://insights.stackoverflow.com/survey/2021#most-popular-technologies-platform
 
 The PostgreSQL Global Development Group. (2022). PostgreSQL: The World's Most Advanced Open Source Relational Database. Retrieved October 2, 2022, from https://www.postgresql.org/

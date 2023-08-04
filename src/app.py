@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, abort
 from flask_marshmallow import Marshmallow
 from marshmallow import fields
 from flask_sqlalchemy import SQLAlchemy
-from marshmallow.validate import Length
+from marshmallow.validate import Length, And, Regexp, OneOf
 from flask_bcrypt import Bcrypt
 from datetime import date, timedelta
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
@@ -200,7 +200,12 @@ class PetSchema(ma.Schema):
     class Meta:
         ordered = True
         fields = ("id", "name", "drop_off_date", "pick_up_date", "customer_id", "pet_sitter_id")
-
+    name = fields.String(required=True, validate=And(
+    Length(min=2, error='Title must be at least 2 characters long'),
+    Regexp('^[a-zA-Z0-9 ]+$', error='Only letters, spaces and numbers are allowed')
+    ))
+    #set the password's length to a minimum of 6 characters
+    password = ma.String(validate=Length(min=6))
 #single pet schema, when one pet needs to be retrieved
 pet_schema = PetSchema()
 #multiple pet schema, when many pets need to be retrieved
@@ -251,6 +256,7 @@ class MessageSchema(ma.Schema):
         ordered = True
         # Fields to expose
         fields = ("id", "date", "title", "content", "customer", "pet_sitter")
+    
     customer = fields.Nested("CustomerSchema", only=("first_name",))
     pet_sitter = fields.Nested("PetSitterSchema", only=("first_name",))
 
@@ -289,9 +295,6 @@ class PetSitterSchema(ma.Schema):
         fields = ("id", "first_name", "last_name", "email", "password", "staff", "admin", "customer", "pet")
         load_only = ("password")
 
-    #set the password's length to a minimum of 6 characters
-    password = ma.String(validate=Length(min=6))
-
 #single pet sitter schema, when one card needs to be retrieved
 pet_sitter_schema = PetSitterSchema()
 #multiple pet sitter schema, when many cards need to be retrieved
@@ -324,6 +327,8 @@ class CustomerSchema(ma.Schema):
         ordered = True
         fields = ("id", "first_name", "last_name", "email", "password", "pet", "message")
         load_only = ("password", )
+    #set the password's length to a minimum of 6 characters
+
     #set the password's length to a minimum of 6 characters
     password = ma.String(validate=Length(min=6))
 
@@ -433,7 +438,6 @@ def auth_login():
   # return the user email and the access token
   return jsonify({"customer":customer.email, "token": access_token })
 
-# (Works)
 def authorise_as_admin(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
@@ -460,7 +464,6 @@ def authorise_as_admin(fn):
 
 # Messages Routes
 
-# OK!!
 @app.route("/customer/messages", methods=["GET"])
 @jwt_required()
 def get_all_customer_messages():
@@ -471,7 +474,6 @@ def get_all_customer_messages():
   # return the data in JSON format
   return jsonify(result)
 
-#(Works!)
 @app.route("/customer/<int:customer_id>/messages", methods=["GET"])
 @jwt_required()
 def get_one_customers_messages(customer_id):
@@ -487,7 +489,7 @@ def get_one_customers_messages(customer_id):
   else:
     return {'error': f'Messages not found for customer id {customer_id}'}, 404
 
-# Works with error handling!!
+
 @app.route('/customer/<int:customer_id>/message', methods=['POST'])
 @jwt_required()
 def create_message_to_customer(customer_id):
@@ -503,7 +505,7 @@ def create_message_to_customer(customer_id):
     if customer:
       #create the message with the given values
       body_data = message_schema.load(request.json)
-      # create a new Card model instance
+      # create a new Message model instance
       message = Message(
         date = date.today(),
         title = body_data.get('title'),

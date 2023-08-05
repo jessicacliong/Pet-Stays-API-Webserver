@@ -26,6 +26,61 @@
 - [Reference List](#reference-list)
 
 
+## Installation and Setup
+
+Locate the folder where you would like to save the API. Then when you are inside the folder Clone the repository from Github.
+
+Connect to a PostgreSQL database from the Flask application. Run the PostgreSQL prompt in the terminal:
+```
+psql 
+```
+
+Create the database:
+```
+CREATE DATABASE pet_sitting_api;
+```
+
+Connect to the database:
+```
+\c pet_sitting_api;
+```
+
+Create user and set a temporary password such as:
+```
+CREATE USER api_dev WITH PASSWORD 'password123';
+```
+
+Grant this user priviliges:
+```
+GRANT ALL PRIVILEGES ON DATABASE pet_sitting_api TO api_dev;
+```
+
+Open another command line and run the following commands:
+
+To create and activate a virtual environment:
+
+```
+python3 -m venv .venv
+
+source .venv/bin/activate
+```
+
+Install dependant packages:
+
+```
+pip install -r requirements.txt
+```
+
+Create and seed the database then run the Flask application with the following cli commands:
+
+```
+flask create
+flask seed
+flask run
+```
+
+This should allow you to open 127.0.0.1:5001/ on your browser or through Postman.
+
 ## R1 and R2 Problem Identification and Justification
 
 The problem being solved by this application is the need for a secure method pet owners can create personal accounts with a pet sitter company to store personal information about customers and their pets respectively.

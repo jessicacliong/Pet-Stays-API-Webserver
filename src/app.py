@@ -268,7 +268,7 @@ messages_schema = MessageSchema(many=True)
 
 class PetSitter(db.Model):
   __tablename__= "pet_sitter"
-  # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
+  # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
   first_name = db.Column(db.String(), nullable=False)
@@ -294,7 +294,14 @@ class PetSitterSchema(ma.Schema):
         ordered = True
         fields = ("id", "first_name", "last_name", "email", "password", "staff", "admin", "customer", "pet")
         load_only = ("password")
-
+    first_name = fields.String(required=True, validate=And(
+    Length(min=2, error='Title must be at least 2 characters long'),
+    Regexp('^[a-zA-Z0-9 ]+$', error='Only letters, spaces and numbers are allowed')
+    ))
+    last_name = fields.String(required=True, validate=And(
+    Length(min=2, error='Title must be at least 2 characters long'),
+    Regexp('^[a-zA-Z0-9 ]+$', error='Only letters, spaces and numbers are allowed')
+    ))
 #single pet sitter schema, when one card needs to be retrieved
 pet_sitter_schema = PetSitterSchema()
 #multiple pet sitter schema, when many cards need to be retrieved
@@ -304,7 +311,7 @@ pet_sitters_schema = PetSitterSchema(many=True)
 class Customer(db.Model):
   # define the table name for the db
   __tablename__= "customer"
-  # Set the primary key, we need to define that each attribute is also a column in the db table, remember "db" is the object we created in the previous step.
+  # Set the primary key, we need to define that each attribute is also a column in the db table
   id = db.Column(db.Integer,primary_key=True)
   # Add the rest of the attributes.
   first_name = db.Column(db.String(), nullable=False)
@@ -327,8 +334,10 @@ class CustomerSchema(ma.Schema):
         ordered = True
         fields = ("id", "first_name", "last_name", "email", "password", "pet", "message")
         load_only = ("password", )
-    #set the password's length to a minimum of 6 characters
-
+    name = fields.String(required=True, validate=And(
+    Length(min=2, error='Title must be at least 2 characters long'),
+    Regexp('^[a-zA-Z0-9 ]+$', error='Only letters, spaces and numbers are allowed')
+    ))
     #set the password's length to a minimum of 6 characters
     password = ma.String(validate=Length(min=6))
 

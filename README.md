@@ -58,8 +58,6 @@ __Advantages of RDBMS__
 
 - Users can readily retrieve information using SQL queries, which are more efficient in relational databases compared to other systems. In contrast to NoSQL databases, which are alternatives to relational databases, often lack support for complex joins, sub-queries, and nesting of queries within WHERE clauses.
 
-- Data duplication is avoided, eliminating the problem of former versions confusion in coding practice.
-
 - Entity integrity is maintained by ensuring that each row in the database possesses a unique attribute, known as a primary key. This ensures that each row represents a distinct instance of the entity, preventing data duplication and anomalies.
 
 - Referential integrity is ensured using foreign keys, which prevents insert anomalies by accepting only values that exist in related tables. To avoid update or delete anomalies, rows containing a primary key used as a foreign key in another table cannot be deleted by default.
@@ -99,7 +97,7 @@ __Advantages__
 
 - PostgreSQL is a freely available and open-source database system that offers users the flexibility to customize and expand its functionalities, including the addition of new data types, functions, operators, indexing methods, and procedural languages.
 
-- With a rich 30-year development history, PostgreSQL has earned a strong reputation for its reliability, robustness, extensibility, and data integrity. It is compatible with major operating systems like Linux, Windows, MacOS, and more.
+- PostgreSQL has earned a strong reputation for its reliability, robustness, extensibility, and data integrity. It is compatible with major operating systems like Linux, Windows, MacOS, and more.
 
 - The database's popularity is evident from its extensive usage by 44% of professional developers in 2021, with a continuous growth trend. Prominent companies such as Apple, Netflix, Reddit, Instagram, and Spotify rely on PostgreSQL.
 
@@ -126,8 +124,6 @@ __Disadvantages__
 - Data replication in PostgreSQL can be intricate.
 
 - Making speed improvements in PostgreSQL requires more effort than in MySQL, as PostgreSQL prioritizes compatibility.
-
-- The documentation in PostgreSQL is usually available only in English.
 
 - PostgreSQL's speed and performance is not as good as its competitors.
 
@@ -270,15 +266,46 @@ The API incorporates the JWT Extended library to enable JSON Web Tokens (JWT) au
 
 Additionally, JWT helps eliminate the need for users to log in for each request. Functions such as create_access_token() enable the creation of JSON Web Tokens, jwt_required() protect routes, and get_jwt_identity() retrieve the identity of a JWT in a protected route. This simplifies and streamlines the authentication process within the API.
 
-
 ## R8 Description of Models Relationship
 
-The Pet Sitter / staff model has a one to many relationship with the Pets model and the Message model. This is because one staff can take care of many pets and one pet has to be linked to one staff. 
-The same goes with messages which is related to the staff model in a one to many relationship. 
+![ERD Pet Stays](/docs/Pet%20Stays%20ERD.png)
+
+The ERD of the following application indicates two main tables present: these are the Customer and Pet Sitter (Staff) tables. These tables are connected through two many to many relationships with Pet table and Messages table. From the Customer's table perspective, one customer can have at least one or many pets registered in the application but one pet has to be related to 1 customer. Same with messages, a customer can have many messages associated to them but one message has to trace back to one customer. 
+From the Pet Sitter's table, we can see a similar situation where one pet sitter can be in charge of at least one pet, but one pet has to be related to one pet sitter. One pet sitter can send one or many messages relating to 1 customer or many customers, but one message has to be created by one pet sitter.  
+
+The corresponding foreign keys for the Message and Pet tables are the customer ids and the pet sitter ids. This allows them to be related to the Customer and Pet Sitter tables interchangeably.  
 
 ## R6 & R9 ERD & Database Relations Implementation
 
+The model for the Pet Sitter table is illustrated below:
 
+![Pet Sitter Model](docs/Pet_sitter_model.png)
+
+The implementation thinking for this table was to include all the required information of staff, such as first name, last name, email, password, label staff as True and the admin attribute was either determined as True or False as not every staff can be an admin. 
+
+A relationship was also established between the Pet and Message tables in the coding of the database. The cascade all delete attribute triggers the deletion of all related records of Pet and Message within the Pet sitter and Customer table. If staff records or customer records were also deleted from the system, all related pet and message records would also be deleted from the system. 
+
+The model for the Customer table is illustrated below:
+
+![Customer Model](docs/customer_model.png)
+
+The customer table initially requires the attributes first name, last name, email, password and upon registration of the customer, pet details can also be outlined and related back to customer tables. Messages created by staff can also be associated with the customers through the use of the foreign key attributes linked to this table. 
+
+The model for the Pet table is illustrated below:
+
+![Pet Model](docs/pet_model.png)
+
+Upon creation of pet details, the name, drop off, pick up details are requirements of this and also the relation associated with pets, such as the owner / customer id the pet is related to. The staff id also needs to be created upon the creation of the pet details in the route. This allows for easier identification of the pet owner and staff who takes care of the pet. 
+
+The foreign keys associated with the pets are also coded in, which are the customer and pet sitter ids. Upon deletion of the customer information, pet details will also be deleted as the cascade all delete attribute is in operation. 
+
+The model for the Message table is illustrated below:
+
+![Message Model](docs/message_model.png)
+
+The messages contain title, content and the date information which are required details to be filled for the creation of messages to be successful. The associated customer and pet sitter ids are also determined in the message creation to easily relate the message to customers and pet sitters. 
+
+The foreign keys associated with the messages are also coded in, which are the customer and pet sitter ids. Upon deletion of the customer information, message details will also be deleted as the cascade all delete attribute has been determined in the coding
 
 ## R10 Project Planning and Tracking Tasks
 
@@ -294,21 +321,39 @@ Trello was used to keep track of the development process of this project. The tr
 
 I began the project by creating the Trello board for this project using the Kanban template available in the set templates list. 
 
+![Trello Board Initial Stages](docs/trello_initial_board.png)
+
  
 ### User Story Utilisation
 
 After creating the preliminary tasks, this helped me determine the key tasks required to create the application. Each short explanation outlined a specific user need outlining what each role was, what action needed to be performed and why. Following the agile methodology, they were expressed through user perspective and were used to help establish tasks to be completed (Atlassian, unknown). These user stories informed me as a developer of what data and information needs to be stored in the database, the routes/end points required to be made (Agile Alliance, 2022). This ensures the application delivered the highest value to the end user by ensuring the core needs were met and end users were kept in mind as a priority (Atlassian, unknown).  
 
-In future projects, I would write this before writing the problem documentation and creating an ERD for the project, as this would have allowed me to better map the ERD .
+In future projects, I would write this before writing the problem documentation and creating an ERD for the project, as this would have allowed me to better map the ERD and normalised the data information before beginning the coding.
+
+![User Stories](docs/trello-user-stories.png)
+
 
 ### Prioritisation, Timeframes and Labels
 
 After writing user stories, I wrote a checklist of tasks to be completed for each user story. Every checklist was ensured the tasks were specific, achieveable and actionable by my current programming capabilities. I assigned dates to the tasks to be done, prioritised each task and assigned labels to keep track of the categories these tasks fall into, also to bookmark each task, such as either categorising them as a README, coding, planning or userstory task. 
 
+![Trello ERD Project Creation](docs/trello-ERD-project-creation%20.png)
+
+![Trello How to Solve the Problem ](docs/trello-document-how-problem-is-solved.png)
+
+![Admin Story 1](docs/trello_admin_story_1_implementation.png)
+
+![Customer Story 1](docs/trello_customer_story_1_implementation.png)
+
+![Pet Sitter Story 1](/docs/trello_pet_sitter_story_1_implementation.png)
+
 
 ### Addition of Marked Elements
 
 I also added tasks to be completed that needed to meet assesment requirements and marks outlined in the assignment rubric. This allowed me to mark tasks as complete as I progressed through the assignment and know which outstanding tasks are needed to complete before the deadline. 
+
+![Trello Assessable Components](docs/trello-adding-assessable-elements.png)
+
 
 ### References
 

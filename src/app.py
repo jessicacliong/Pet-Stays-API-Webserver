@@ -115,6 +115,7 @@ def seed_db():
 
   db.session.add(pet2)
 
+  # Further Iteration
   # pet_description_1 = PetDescription(
   #   name = "Bruno",
   #   animal_type = "Dog",
@@ -348,7 +349,6 @@ customers_schema = CustomerSchema(many=True)
 
 # Staff Routes
 
-# (Working)
 @app.route("/auth/staff/register", methods=["POST"])
 def auth_register_staff():
   #The request data will be loaded in a pet_sitter_schema converted to JSON
@@ -399,7 +399,6 @@ def auth_login_staff():
 
 #Customer routes
 
-# (Working!!)
 @app.route("/auth/customer/register", methods=["POST"])
 def auth_register_customer():
   #The request data will be loaded in a customer_schema converted to JSON
@@ -430,7 +429,6 @@ def auth_register_customer():
     #Return the user to check the request was successful
     return jsonify(customer_schema.dump(customer))
 
-# (Working)
 @app.route("/auth/customer/login", methods=["POST"])
 def auth_login():
   #get the user data from the request
@@ -459,6 +457,7 @@ def authorise_as_admin(fn):
           return {'error': 'Only admins are authorised to perform this action'}, 403
     return wrapper
 
+#further iteration
 # def authorise_staff(fn):
 #   @functools.wraps(fn)
 #   def wrapper(*args, **kwargs):
@@ -470,6 +469,7 @@ def authorise_as_admin(fn):
 #     else:
 #         return {'error': 'Only staff are authorised to perform this action'}, 403
 #   return wrapper
+
 
 # Messages Routes
 
@@ -533,7 +533,7 @@ def create_message_to_customer(customer_id):
   else:
     return {'error': f'Invalid staff with id {pet_sitter_id}, unable to create a message'}, 401
 
-# Working!!
+
 @app.route('/customer/<int:customer_id>/message/<int:message_id>', methods=['DELETE'])
 @jwt_required()
 @authorise_as_admin
@@ -557,7 +557,7 @@ def delete_customer_message(customer_id, message_id):
       return {'error': 'Not authorised to delete messages'}, 403
 
 
-# OK! Admin and id 1 customer can access DX 
+
 @app.route("/customer", methods=["GET"])
 @jwt_required()
 def get_all_customers():
@@ -568,7 +568,7 @@ def get_all_customers():
   # return the data in JSON format
   return jsonify(result)
 
-# (Working!, same here DX)
+
 @app.route('/customer/<int:customer_id>', methods=['GET'])
 @jwt_required()
 def get_one_customer_detail(customer_id):
@@ -609,7 +609,7 @@ def get_one_customer_detail(customer_id):
 #   else: 
 #     return {'error': f'Customer with id {customer_id} not found or staff with id not found'}, 404
 
-#(working!! Authorisation also works)
+
 @app.route("/customer/<int:customer_id>", methods=["PUT", "PATCH"])
 @jwt_required()
 def update_customer(customer_id):
@@ -631,7 +631,7 @@ def update_customer(customer_id):
   else:
     return { 'error': f'Customer with id {customer_id} cannot be found.'}
 
-#(Working!!!)
+
 @app.route('/customer/<int:customer_id>', methods=['DELETE'])
 @jwt_required()
 @authorise_as_admin
@@ -646,7 +646,7 @@ def delete_one_customer(customer_id):
     else:
         return {'error': f'Customer not found with id {customer_id}'}, 404
 
-# Working
+
 @app.route("/pets", methods=["GET"])
 @jwt_required()
 @authorise_as_admin
@@ -659,7 +659,7 @@ def get_all_pets_detail():
   # return the data in JSON format
   return jsonify(result)
 
-# Working with customer authorisation
+
 @app.route("/customer/<int:customer_id>/pets", methods=["GET"])
 @jwt_required()
 def get_pet_detail(customer_id):
@@ -679,7 +679,7 @@ def get_pet_detail(customer_id):
   else: 
     return {'error': f'Customer with id {customer_id} not found'}, 404
 
-# (working)
+
 @app.route("/customer/<int:customer_id>/pet", methods=["POST"])
 #Decorator to make sure the jwt is included in the request
 @jwt_required()
